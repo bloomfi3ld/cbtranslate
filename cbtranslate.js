@@ -6,6 +6,8 @@
 // @author       bloomfi3ld
 // @match        https://*.chaturbate.com/*
 // @match        https://*.stripchat.com/*
+// @updateURL    https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.js
+// @downloadURL  https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
