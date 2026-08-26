@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         cbtranslate
 // @namespace    bloomfi3ld
-// @version      1.0.2.1.4
+// @version      1.0.2.1.6
 // @description  Minimal private-message translator for adult supported sites.
 // @author       bloomfi3ld
 // @match        https://*.chaturbate.com/*
 // @match        https://*.stripchat.com/*
-// @updateURL    https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.js
-// @downloadURL  https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.js
+// @updateURL    https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.user.js
+// @downloadURL  https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
