@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         cbtranslate
 // @namespace    bloomfi3ld
-// @version      1.0.2.1.6
+// @version      1.0.2.1.7
 // @description  Minimal private-message translator for adult supported sites.
 // @author       bloomfi3ld
 // @match        https://*.chaturbate.com/*
@@ -13,8 +13,8 @@
 // @grant        GM_getValue
 // @grant        GM_deleteValue
 // @grant        GM_listValues
-// @connect      bing.com
-// @connect      www.bing.com
+// @connect      translate.googleapis.com
+// @connect      clients5.google.com
 // Disabled: @connect      127.0.0.1
 // @run-at       document-idle
 // ==/UserScript==
@@ -1405,7 +1405,7 @@
     /**
      * Almacenamiento en IndexedDB.
      * Gestiona la persistencia de configuración por chat, la caché de traducciones
-     * para no saturar la API de Bing, y el registro de mensajes enviados.
+     * para no saturar la API de traduccion remota, y el registro de mensajes enviados.
      */
     class OutgoingMessageStore {
         constructor() {
@@ -2331,88 +2331,20 @@
     }
 
     /**
-     * Traductor basado en la API de Bing.
-     * Gestiona la obtención de tokens de autorización, peticiones de traducción individuales
-     * y el procesamiento por lotes (batch) interactuando con la caché de IndexedDB.
+     * Traductor basado en los endpoints web de Google Translate.
+     * Mantiene la misma interfaz que el proveedor anterior para que el resto del
+     * controlador siga funcionando sin cambios, incluida la caché en IndexedDB.
      */
-    class BingTranslator {
+    class GoogleTranslator {
         constructor(store = null) {
-            this.authPageUrl = 'https://www.bing.com/translator';
-            this.translateUrl = 'https://www.bing.com/ttranslatev3';
-            this.authCache = null;
-            this.authTtlMs = 55 * 60 * 1000;
+            this.primaryTranslateUrl = 'https://translate.googleapis.com/translate_a/single';
+            this.fallbackTranslateUrl = 'https://clients5.google.com/translate_a/t';
             this.store = store;
-        }
-
-        async getAuth() {
-            if (this.authCache && Date.now() - this.authCache.timestamp < this.authTtlMs) {
-                telemetry.capture('translator.auth.cacheHit', {
-                    ageMs: Date.now() - this.authCache.timestamp,
-                });
-                return this.authCache.value;
-            }
-
-            telemetry.capture('translator.auth.fetch.start', {
-                authPageUrl: this.authPageUrl,
-            }, 'info');
-            const response = await withRetries(() => gmRequest({
-                url: this.authPageUrl,
-                headers: this.createHeaders(),
-                context: {
-                    area: 'translator-auth',
-                    authPageUrl: this.authPageUrl,
-                },
-            }), CONFIG.apiRetryAttempts, CONFIG.apiRetryDelayMs);
-
-            const auth = this.parseAuthFromHtml(response.responseText);
-            this.authCache = {
-                value: auth,
-                timestamp: Date.now(),
-            };
-            telemetry.capture('translator.auth.fetch.success', {
-                ig: auth.ig,
-                iid: auth.iid,
-                hasMuid: Boolean(auth.muid),
-            }, 'info');
-            return auth;
-        }
-
-        parseAuthFromHtml(html) {
-            const ig = this.extractPattern(html, /IG:"(.*?)"/, 'IG');
-            const iid = this.extractPattern(html, /data-iid="(.*?)"/, 'IID');
-            const helperInfo = this.extractPattern(html, /params_AbusePreventionHelper = (.*?);/, 'helper info');
-            const muid = this.extractPattern(html, /muid":\s*"(.*?)"/, 'MUID', true) || '';
-
-            let helperArray;
-            try {
-                helperArray = JSON.parse(helperInfo);
-            } catch (error) {
-                throw new Error(`Failed to parse Bing auth helper info: ${error.message}`);
-            }
-
-            if (!Array.isArray(helperArray) || helperArray.length < 2) {
-                throw new Error('Invalid Bing auth helper info format');
-            }
-
-            return {
-                ig,
-                iid,
-                key: String(helperArray[0]).replace(/^"|"$/g, ''),
-                token: String(helperArray[1]),
-                muid,
-            };
-        }
-
-        extractPattern(text, pattern, fieldName, optional = false) {
-            const match = text.match(pattern);
-            if (match && match[1]) return match[1];
-            if (optional) return '';
-            throw new Error(`Failed to extract ${fieldName} from Bing page`);
         }
 
         createHeaders(additionalHeaders = {}) {
             return {
-                Accept: '*/*',
+                Accept: 'application/json, text/plain, */*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 ...additionalHeaders,
@@ -2420,21 +2352,126 @@
         }
 
         mapLanguageCode(code) {
-            if (code === 'auto') return 'auto-detect';
-            if (code === 'no') return 'nb';
-            return code;
+            const normalized = String(code || CONFIG.sourceLanguage || 'auto').trim().toLowerCase();
+            if (!normalized) return 'auto';
+            if (normalized === 'auto') return 'auto';
+            if (normalized === 'iw') return 'he';
+            return normalized;
         }
 
-        buildTranslateBody(text, sourceLanguage, targetLanguage, auth) {
+        normalizeDetectedLanguage(code) {
+            const normalized = String(code || '').trim().toLowerCase();
+            if (!normalized) return null;
+            if (normalized === 'iw') return 'he';
+            return normalized;
+        }
+
+        buildPrimaryTranslateUrl(text, sourceLanguage, targetLanguage) {
             const params = new URLSearchParams();
-            params.set('text', text);
-            params.set('fromLang', this.mapLanguageCode(sourceLanguage));
-            params.set('to', this.mapLanguageCode(targetLanguage));
-            params.set('token', auth.token);
-            params.set('key', auth.key);
-            params.set('isAuthv2', 'true');
-            params.set('tryFetchingGenderDebiasedTranslations', 'true');
-            return params.toString();
+            params.set('client', 'gtx');
+            params.set('ie', 'UTF-8');
+            params.set('oe', 'UTF-8');
+            params.set('dj', '1');
+            params.append('dt', 't');
+            params.set('sl', this.mapLanguageCode(sourceLanguage));
+            params.set('tl', this.mapLanguageCode(targetLanguage));
+            params.set('q', text);
+            return `${this.primaryTranslateUrl}?${params.toString()}`;
+        }
+
+        buildFallbackTranslateUrl(text, sourceLanguage, targetLanguage) {
+            const params = new URLSearchParams();
+            params.set('client', 'dict-chrome-ex');
+            params.set('dj', '1');
+            params.set('sl', this.mapLanguageCode(sourceLanguage));
+            params.set('tl', this.mapLanguageCode(targetLanguage));
+            params.set('q', text);
+            return `${this.fallbackTranslateUrl}?${params.toString()}`;
+        }
+
+        parsePrimaryResponse(responseText) {
+            const parsed = JSON.parse(responseText);
+            if (!parsed || !Array.isArray(parsed.sentences)) {
+                throw new Error('Empty or invalid response from Google primary endpoint');
+            }
+            const translatedText = parsed.sentences
+                .map(item => item?.trans || item?.text || '')
+                .join('')
+                .trim();
+            if (!translatedText) {
+                throw new Error('Google primary endpoint returned an empty translation');
+            }
+            return {
+                translatedText,
+                detectedLanguage: this.normalizeDetectedLanguage(
+                    parsed.src
+                    || parsed.source
+                    || parsed.sourceLanguage
+                    || parsed?.ld_result?.srclangs?.[0]
+                ),
+                rawResponse: parsed,
+            };
+        }
+
+        parseFallbackResponse(responseText) {
+            const parsed = JSON.parse(responseText);
+            const translatedText = Array.isArray(parsed) && Array.isArray(parsed[0]) ? String(parsed[0][0] || '').trim() : '';
+            if (!translatedText) {
+                throw new Error('Empty or invalid response from Google fallback endpoint');
+            }
+            return {
+                translatedText,
+                detectedLanguage: this.normalizeDetectedLanguage(
+                    Array.isArray(parsed) && Array.isArray(parsed[0]) ? parsed[0][1] : null
+                ),
+                rawResponse: parsed,
+            };
+        }
+
+        async requestPrimaryTranslation(text, sourceLanguage, targetLanguage, attempt) {
+            const response = await gmRequest({
+                method: 'GET',
+                url: this.buildPrimaryTranslateUrl(text, sourceLanguage, targetLanguage),
+                headers: this.createHeaders(),
+                context: {
+                    area: 'translator-translateText',
+                    provider: 'google-primary',
+                    sourceLanguage,
+                    targetLanguage,
+                    attempt,
+                    textLength: text?.length || 0,
+                },
+            });
+            return this.parsePrimaryResponse(response.responseText);
+        }
+
+        async requestFallbackTranslation(text, sourceLanguage, targetLanguage, attempt, primaryError) {
+            telemetry.capture('translator.translateText.endpointFallback', {
+                sourceLanguage,
+                targetLanguage,
+                attempt,
+                textLength: text?.length || 0,
+                fallbackProvider: 'google-fallback',
+                primaryError: primaryError ? {
+                    name: primaryError.name,
+                    message: primaryError.message,
+                } : null,
+            }, 'warn');
+
+            const response = await gmRequest({
+                method: 'GET',
+                url: this.buildFallbackTranslateUrl(text, sourceLanguage, targetLanguage),
+                headers: this.createHeaders(),
+                context: {
+                    area: 'translator-translateText',
+                    provider: 'google-fallback',
+                    sourceLanguage,
+                    targetLanguage,
+                    attempt,
+                    textLength: text?.length || 0,
+                },
+            });
+            return this.parseFallbackResponse(response.responseText);
         }
 
         async getCachedTranslation(text, sourceLanguage, targetLanguage) {
@@ -2512,73 +2549,41 @@
             }
 
             return withRetries(async (attempt) => {
-                if (attempt > 1) {
-                    this.authCache = null;
-                    telemetry.capture('translator.translateText.resetAuthCache', {
-                        attempt,
-                    }, 'warn');
-                }
-
-                const auth = await this.getAuth();
-                const query = new URLSearchParams({
-                    isVertical: '1',
-                    IG: auth.ig,
-                    IID: auth.iid,
-                });
-
-                const response = await gmRequest({
-                    method: 'POST',
-                    url: `${this.translateUrl}?${query.toString()}`,
-                    headers: this.createHeaders({
-                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                        Origin: 'https://www.bing.com',
-                        Referer: 'https://www.bing.com/translator',
-                    }),
-                    data: this.buildTranslateBody(text, sourceLanguage, targetLanguage, auth),
-                    context: {
-                        area: 'translator-translateText',
+                let translated;
+                try {
+                    translated = await this.requestPrimaryTranslation(text, sourceLanguage, targetLanguage, attempt);
+                } catch (primaryError) {
+                    translated = await this.requestFallbackTranslation(
+                        text,
                         sourceLanguage,
                         targetLanguage,
                         attempt,
-                        textLength: text?.length || 0,
-                    },
-                });
-
-                const parsed = JSON.parse(response.responseText);
-                const validResponse = Array.isArray(parsed)
-                    ? parsed.find(item => item && item.detectedLanguage && item.translations)
-                    : null;
-
-                if (!validResponse) {
-                    throw new Error('Empty or invalid response from Bing');
+                        primaryError
+                    );
                 }
-
-                const translatedText = Array.isArray(validResponse.translations)
-                    ? validResponse.translations.map(item => item.text || '').join('').trim()
-                    : '';
 
                 telemetry.capture('translator.translateText.success', {
                     sourceLanguage,
                     targetLanguage,
                     attempt,
                     requestText: text,
-                    translatedText,
-                    detectedLanguage: validResponse.detectedLanguage?.language || null,
-                    rawResponse: parsed,
+                    translatedText: translated.translatedText,
+                    detectedLanguage: translated.detectedLanguage,
+                    rawResponse: translated.rawResponse,
                 }, 'info');
 
                 await this.putCachedTranslation(
                     text,
                     sourceLanguage,
                     targetLanguage,
-                    translatedText,
-                    validResponse.detectedLanguage?.language || null,
+                    translated.translatedText,
+                    translated.detectedLanguage,
                     { mode: options.mode || 'single', attempt }
                 );
 
                 return {
-                    translatedText,
-                    detectedLanguage: validResponse.detectedLanguage?.language || null,
+                    translatedText: translated.translatedText,
+                    detectedLanguage: translated.detectedLanguage,
                 };
             }, CONFIG.apiRetryAttempts, CONFIG.apiRetryDelayMs);
         }
@@ -4874,7 +4879,7 @@
         }, 'info');
         log('Bootstrapping adapter', adapter.siteId);
         const store = new OutgoingMessageStore();
-        const translator = new BingTranslator(store);
+        const translator = new GoogleTranslator(store);
         const controller = new TranslationController(adapter, translator, store);
         controller.start();
     }
