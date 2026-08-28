@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         cbtranslate
 // @namespace    bloomfi3ld
-// @version      1.0.2.1.7
+// @version      1.0.2.1.8
 // @description  Minimal private-message translator for adult supported sites.
 // @author       bloomfi3ld
 // @match        https://*.chaturbate.com/*
 // @match        https://*.stripchat.com/*
+// @match        https://*.topcams.tv/*
 // @updateURL    https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.user.js
 // @downloadURL  https://raw.githubusercontent.com/bloomfi3ld/cbtranslate/master/cbtranslate.user.js
 // @grant        GM_xmlhttpRequest
@@ -92,6 +93,7 @@
     const TELEMETRY_INSTALL_ID = getOrCreateTelemetryInstallId();
     const DOM_SNAPSHOT_CAPTURE_STATE = new Map();
     const TRANSLATION_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="none" viewBox="0 0 14 13" role="img"><path fill="#00779F" d="M.869 8.64a.212.212 0 0 1 .367 0l.84 1.463c.075.143-.023.322-.188.322h-.352v.27c0 .593.48 1.08 1.08 1.08h1.327c.173 0 .308.135.308.308v.465a.304.304 0 0 1-.308.307H2.631a2.16 2.16 0 0 1-2.16-2.16v-.27H.216a.216.216 0 0 1-.187-.322z"></path><path fill="#00779F" fill-rule="evenodd" d="M8.54 6.78c.18-.36.766-.36.946 0l.008-.007 2.655 5.302a.534.534 0 0 1-.24.713.5.5 0 0 1-.24.06.52.52 0 0 1-.473-.293l-.915-1.83H7.754l-.915 1.83a.53.53 0 0 1-.713.24.536.536 0 0 1-.24-.712zM8.28 9.675h1.47l-.736-1.462z" clip-rule="evenodd"></path><path fill="#00779F" d="M7.01 1.583c.293 0 .533.24.533.532s-.24.533-.532.533h-.78l-.9 1.357-.068.083-.952.953 1.477 1.477V6.51c.21.21.21.54 0 .75a.53.53 0 0 1-.75 0L3.561 5.782 2.084 7.261a.53.53 0 1 1-.75-.75L2.81 5.032l-.953-.952a.526.526 0 0 1 0-.75c.21-.21.54-.21.75 0l.953.952.915-.914.48-.72H.644a.535.535 0 0 1-.533-.533c0-.292.24-.532.533-.532zM10.866 1.59a2.16 2.16 0 0 1 2.16 2.16v.27h.24c.165 0 .27.18.187.323l-.84 1.462a.212.212 0 0 1-.367 0l-.84-1.462c-.075-.143.023-.323.188-.323h.352v-.27c0-.592-.48-1.08-1.08-1.08H9.554a.304.304 0 0 1-.308-.307v-.465c0-.173.135-.308.308-.308zM3.831 0c.293 0 .533.24.533.532s-.24.533-.533.533H3.3a.535.535 0 0 1-.533-.533C2.766.24 3.006 0 3.3 0z"></path></svg>`;
+    const STRIPCHAT_OUTGOING_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="none" role="img" aria-hidden="true"><path d="M3.75 3.25h8.5A1.75 1.75 0 0 1 14 5v4a1.75 1.75 0 0 1-1.75 1.75H8.3L5.35 13.1a.75.75 0 0 1-1.22-.59v-1.76h-.38A1.75 1.75 0 0 1 2 9V5c0-.97.78-1.75 1.75-1.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.45 8.15 6.8 4.95h.4l1.35 3.2m-2.55-.6h1.95" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.05 6.15h1.9M10.05 8.15h1.25" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`;
     const BACKLOG_PROGRESS_MIN_VISIBLE_MS = 900;
     const BING_LANGUAGE_OPTIONS = Object.freeze([
         { code: 'auto', label: 'Auto-detect' },
@@ -1127,11 +1129,49 @@
                 margin: 10px 14px 0;
                 padding: 0 8px;
             }
+            .model-chat-controls [data-qts-outgoing-language-wrap="1"] {
+                justify-content: flex-start;
+                gap: 6px;
+                margin: 6px 0 0;
+                padding: 0;
+                width: auto;
+                max-width: 100%;
+            }
+            [data-qts-outgoing-layout="model-chat"] {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-end;
+                align-content: flex-start;
+                column-gap: 8px;
+                row-gap: 4px;
+                height: auto !important;
+                min-height: 84px;
+                padding-bottom: 6px;
+                box-sizing: border-box;
+            }
+            [data-qts-outgoing-layout="model-chat"] > .chat-actions-wrapper {
+                flex: 0 0 48px;
+                align-self: flex-start;
+            }
+            [data-qts-outgoing-layout="model-chat"] > .model-chat-input,
+            [data-qts-outgoing-layout="model-chat"] > .ChatInput__wrapper {
+                flex: 1 1 calc(100% - 56px);
+                min-width: 0;
+            }
+            [data-qts-outgoing-layout="model-chat"] > [data-qts-outgoing-language-wrap="1"] {
+                flex: 0 0 calc(100% - 56px);
+                margin: 0 0 0 56px;
+                min-height: 18px;
+            }
             [data-qts-outgoing-language-label="1"] {
                 font-size: 11px;
                 line-height: 1;
                 opacity: 0.72;
                 white-space: nowrap;
+            }
+            .model-chat-controls [data-qts-outgoing-language-label="1"] {
+                font-size: 11px;
+                opacity: 0.72;
             }
             [data-qts-pm-target-select="1"] {
                 max-width: 170px;
@@ -1188,6 +1228,18 @@
                 background-size: 5px 5px, 5px 5px;
                 background-repeat: no-repeat;
             }
+            .model-chat-controls [data-qts-outgoing-language-select="1"] {
+                min-width: 150px;
+                max-width: 176px;
+                height: 24px;
+                padding: 0 24px 0 8px;
+                font-size: 11px;
+                line-height: 22px;
+                background-position:
+                    calc(100% - 13px) 10px,
+                    calc(100% - 8px) 10px;
+                background-size: 5px 5px, 5px 5px;
+            }
             [data-qts-outgoing-language-select="1"]:hover,
             [data-qts-outgoing-language-select="1"]:focus {
                 border-color: rgba(47, 188, 255, 0.6);
@@ -1204,32 +1256,76 @@
                 min-width: 22px;
                 height: 22px;
                 margin-right: 6px;
-                border: 1px solid rgba(255, 255, 255, 0.16);
+                border: 1px solid rgba(255, 82, 82, 0.52);
                 border-radius: 999px;
                 padding: 0;
-                background: rgba(0, 0, 0, 0.16);
+                background: rgba(120, 18, 18, 0.20);
                 color: inherit;
                 opacity: 1;
                 cursor: pointer;
-                transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease;
+                box-shadow: inset 0 0 0 1px rgba(255, 82, 82, 0.10);
+                transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"] {
+                width: 40px;
+                min-width: 40px;
+                height: 40px;
+                margin-left: 12px;
+                margin-right: 0;
+                flex-shrink: 0;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.38);
+                background: rgba(255, 255, 255, 0.10);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+                color: rgba(255, 255, 255, 0.98);
+                position: relative;
+                z-index: 100;
+                pointer-events: auto !important;
+            }
+
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"] svg {
+                pointer-events: none !important;
             }
             [data-qts-pm-outgoing-toggle="1"] svg {
                 width: 14px;
                 height: 14px;
-                opacity: 0.42;
-                filter: grayscale(1) saturate(0) brightness(1.25);
+                opacity: 0.92;
+                filter: grayscale(0.1) saturate(1.2) brightness(1.05);
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"] svg {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+                filter: none;
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"]:hover {
+                background: rgba(255, 255, 255, 0.16);
+                border-color: rgba(255, 255, 255, 0.54);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"][aria-pressed="true"] {
+                border-color: rgba(255, 90, 90, 1);
+                background: linear-gradient(180deg, rgba(230, 45, 45, 0.92) 0%, rgba(176, 16, 16, 0.96) 100%);
+                box-shadow: inset 0 0 0 1px rgba(255, 178, 178, 0.26), 0 0 0 1px rgba(110, 10, 10, 0.24);
+                color: #fff;
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"][aria-pressed="true"] svg {
+                opacity: 1;
+                filter: none;
             }
             [data-qts-pm-outgoing-toggle="1"]:hover {
-                background: rgba(255, 255, 255, 0.08);
+                background: rgba(156, 28, 28, 0.28);
+                border-color: rgba(255, 96, 96, 0.72);
+                box-shadow: inset 0 0 0 1px rgba(255, 96, 96, 0.16);
             }
             [data-qts-pm-outgoing-toggle="1"][aria-pressed="true"] {
-                border-color: rgba(47, 188, 255, 0.72);
-                background: rgba(0, 119, 159, 0.18);
-                box-shadow: inset 0 0 0 1px rgba(47, 188, 255, 0.18);
+                border-color: rgba(255, 78, 78, 0.96);
+                background: rgba(191, 24, 24, 0.52);
+                box-shadow: inset 0 0 0 1px rgba(255, 132, 132, 0.30), 0 0 0 1px rgba(96, 8, 8, 0.20);
             }
             [data-qts-pm-outgoing-toggle="1"][aria-pressed="true"] svg {
                 opacity: 1;
-                filter: none;
+                filter: saturate(1.15) brightness(1.08);
             }
             [data-qts-pm-toggle-button="1"] {
                 display: inline-flex;
@@ -2178,6 +2274,14 @@
         toggleButton.classList.toggle('LbQPloYMQSit0_FMAd1n', showTranslated);
     }
 
+    function shouldShowTranslatedForRenderedMessage(textNode, state) {
+        if (!textNode) return false;
+        if (textNode.dataset.qtsDirection === 'outgoing') {
+            return CONFIG.translateOwnMessages && isOutgoingTranslationEnabled(state);
+        }
+        return isTranslationEnabled(state);
+    }
+
     function createPendingTranslationNode(message) {
         if (!message.textNode) return null;
         message.textNode.dataset.qtsPending = '1';
@@ -2191,6 +2295,7 @@
         const textNode = message.textNode;
         const contentNode = getMessageContentNode(textNode);
 
+        textNode.dataset.qtsDirection = message.direction || 'incoming';
         textNode.dataset.qtsOriginalText = message.text;
         textNode.dataset.qtsTranslatedText = translatedText;
         if (detectedLanguage) {
@@ -2200,7 +2305,7 @@
         contentNode.classList.add(TRANSLATION_BLOCK_CLASS);
         ensureToggleButton(textNode);
         clearMessageStatus(textNode);
-        setMessageTranslationState(textNode, isTranslationEnabled(message.stateRef || null));
+        setMessageTranslationState(textNode, shouldShowTranslatedForRenderedMessage(textNode, message.stateRef || null));
         delete textNode.dataset.qtsPending;
         delete textNode.dataset.qtsError;
     }
@@ -2237,6 +2342,7 @@
         textNode.dataset.qtsOriginalText = originalText;
         delete textNode.dataset.qtsTranslatedText;
         delete textNode.dataset.qtsDetectedLanguage;
+        delete textNode.dataset.qtsDirection;
         delete textNode.dataset.qtsShowing;
         delete textNode.dataset.qtsPending;
         delete textNode.dataset.qtsError;
@@ -3153,47 +3259,68 @@
 
         isPrivateMessageContainer(container) {
             if (!(container instanceof HTMLElement)) return false;
-            return Boolean(
+            const hasLegacyLayout = Boolean(
                 container.querySelector('.content-messages')
                 && container.querySelector('textarea[placeholder*="Mensaje privado"], textarea[placeholder*="Private message"], .ChatInput__input, .chat-input textarea')
                 && container.querySelector('.messenger-chat-header')
             );
+            const hasModelPanelLayout = Boolean(
+                container.matches('.model-chat-container.private, .model-chat-private, .model-chat-private-tab')
+                && container.querySelector('textarea[placeholder*="Mensaje privado"], textarea[placeholder*="Private message"], .ChatInput__input')
+                && container.querySelector('.model-chat-controls, .model-chat-input')
+                && container.querySelector('button[aria-label="Enviar"], button[aria-label="Send"], .ChatInput__sendBtn, [class*="ChatInput__sendBtn"]')
+            );
+            return Boolean(
+                hasLegacyLayout || hasModelPanelLayout
+            );
         }
 
-        findOpenPmContainer() {
+        scorePmContainer(container) {
+            if (!(container instanceof HTMLElement)) return -1;
+            const activeElement = document.activeElement;
+            const hasFocusedInput = Boolean(
+                activeElement
+                && container.contains(activeElement)
+                && (
+                    activeElement.matches?.('textarea, input, [contenteditable="true"], [contenteditable=""]')
+                    || activeElement.closest?.('textarea, input, [contenteditable="true"], [contenteditable=""]')
+                )
+            );
+            const hasMessageList = Boolean(container.querySelector('.content-messages, .messages'));
+            const isExpandedMessenger = container.matches('.expanded.messenger-chat, .messenger-chat.expanded');
+            const hasExpandedClass = String(container.className || '').includes('expanded');
+            const hasInput = Boolean(container.querySelector('textarea[placeholder*="Mensaje privado"], textarea[placeholder*="Private message"], .ChatInput__input, .chat-input textarea'));
+            const hasSend = Boolean(container.querySelector('button[aria-label="Enviar"], button[aria-label="Send"], .ChatInput__sendBtn, [class*="ChatInput__sendBtn"]'));
+
+            return [
+                hasFocusedInput ? 1000 : 0,
+                hasMessageList ? 100 : 0,
+                isExpandedMessenger ? 50 : 0,
+                hasExpandedClass ? 20 : 0,
+                hasInput ? 10 : 0,
+                hasSend ? 5 : 0,
+            ].reduce((sum, value) => sum + value, 0);
+        }
+
+        findOpenPmContainers() {
             const candidates = [
-                ...document.querySelectorAll('.expanded.messenger-chat, .messenger-chat.expanded, .messenger-chat')
+                ...document.querySelectorAll('.expanded.messenger-chat, .messenger-chat.expanded, .messenger-chat, .model-chat-container.private, .model-chat-private, .model-chat-private-tab, .private-chat-container, [data-name="PrivateChat"]')
             ].filter(candidate => this.isPrivateMessageContainer(candidate));
-            const selected = candidates.find(candidate => this.isVisiblePmContainer(candidate))
-                || candidates[0]
-                || null;
-            this.emitTelemetry('findOpenPmContainer', {
-                method: 'findOpenPmContainer',
-                candidateCount: candidates.length,
-                found: Boolean(selected),
-                selected,
-                domSnapshot: selected
-                    ? null
-                    : this.captureDomSnapshot('find-open-pm-container-missing', document.body, {
-                        includeParent: false,
-                        extra: {
-                            candidateSelectors: [
-                                '.expanded.messenger-chat',
-                                '.messenger-chat.expanded',
-                                '.messenger-chat',
-                            ],
-                        },
-                    }),
-            }, selected ? 'debug' : 'warn');
-            return selected;
+            return candidates.filter(candidate => this.isVisiblePmContainer(candidate));
         }
 
         getConversationRoot() {
-            return this.findOpenPmContainer();
+            // For backward compatibility with things that expect a single root
+            const containers = this.findOpenPmContainers();
+            if (!containers.length) return null;
+            return containers.map(candidate => ({
+                candidate,
+                score: this.scorePmContainer(candidate),
+            })).sort((a, b) => b.score - a.score)[0].candidate;
         }
 
         getMessageList() {
-            return this.getConversationRoot()?.querySelector('.content-messages') || null;
+            return this.getConversationRoot()?.querySelector('.content-messages, .messages') || null;
         }
 
         getComposerInput() {
@@ -3239,30 +3366,48 @@
         }
 
         getMediaDock() {
-            return this.getComposerInput()?.closest('.ChatInput__wrapper, .chat-input, [class*="ChatInput__wrapper"]') || null;
+            const input = this.getComposerInput();
+            return input?.closest('.ChatInput__wrapper, .chat-input, [class*="ChatInput__wrapper"], .model-chat-input, .model-chat-controls') || null;
         }
 
         getControlBar() {
-            return this.getConversationRoot()?.querySelector('.messenger-chat-header .chat-header-content, .messenger-chat-header') || null;
+            const root = this.getConversationRoot();
+            const directMatch = root?.querySelector('.messenger-chat-header .chat-header-content, .messenger-chat-header, .model-chat-controls') || null;
+            if (directMatch) return directMatch;
+            return this.getComposerInput()?.closest('.model-chat-controls, .chat-controls.content-controls, .messenger-chat-header, .chat-header-content') || null;
         }
 
         getOutgoingLanguageHost() {
-            return this.getConversationRoot()?.querySelector('.chat-controls.content-controls') || null;
+            const root = this.getConversationRoot();
+            const directMatch = root?.querySelector('.chat-controls.content-controls, .model-chat-controls, .chat-actions-wrapper') || null;
+            if (directMatch) return directMatch;
+            return this.getComposerInput()?.closest('.model-chat-controls, .chat-controls.content-controls, .messenger-chat-header, .chat-header-content') || null;
         }
 
         supportsIncomingTranslation() {
             return false;
         }
 
-        getCounterpartUsername() {
-            const root = this.getConversationRoot();
+        getCounterpartUsername(root) {
+            root = root || this.getConversationRoot();
             const href = root?.querySelector('.messenger-chat-header a[href^="/user/"]')?.getAttribute('href') || '';
             const hrefMatch = href.match(/^\/user\/([^/?#]+)/i);
             if (hrefMatch) return hrefMatch[1].toLowerCase();
 
             const headerText = normalizeWhitespace(root?.querySelector('.messenger-chat-header')?.textContent || '');
             const textMatch = headerText.match(/([a-z0-9._-]{2,})$/i);
-            return textMatch ? textMatch[1].toLowerCase() : 'counterpart';
+            if (textMatch) return textMatch[1].toLowerCase();
+
+            const selectedNavText = normalizeWhitespace(
+                root?.querySelector('.model-chat-nav-item.selected, .model-chat-nav-item.active, .model-chat-nav-item[aria-selected="true"]')?.textContent || 
+                document.querySelector('.model-chat-nav-item.selected, .model-chat-nav-item.active, .model-chat-nav-item[aria-selected="true"]')?.textContent || ''
+            );
+            if (selectedNavText) {
+                const navMatch = selectedNavText.match(/([a-z0-9._-]{2,})/i);
+                if (navMatch) return navMatch[1].toLowerCase();
+            }
+
+            return 'counterpart';
         }
 
         resolveMessageTimestamp(element) {
@@ -3300,8 +3445,8 @@
             return elements;
         }
 
-        getConversationIdentity() {
-            return `stripchat-pm::${this.getCounterpartUsername()}`;
+        getConversationIdentity(root) {
+            return `stripchat-pm::${this.getCounterpartUsername(root)}`;
         }
 
         parseMessageElement(element) {
@@ -3387,6 +3532,21 @@
             return captureDomSnapshot(`${this.adapter.siteId}:${signature}`, node, options);
         }
 
+        getOutgoingToggleSvg() {
+            return this.adapter.siteId === 'stripchat-pm'
+                ? STRIPCHAT_OUTGOING_TOGGLE_SVG
+                : TRANSLATION_TOGGLE_SVG;
+        }
+
+        applyOutgoingToggleTheme(button) {
+            if (!button) return;
+            if (this.adapter.siteId === 'stripchat-pm') {
+                button.dataset.qtsTheme = 'stripchat';
+            } else {
+                delete button.dataset.qtsTheme;
+            }
+        }
+
         start() {
             telemetry.capture('controller.start', {
                 siteId: this.adapter.siteId,
@@ -3396,8 +3556,16 @@
             window.addEventListener('qts-telemetry-recording-changed', this.handleRecordingStateChanged);
             this.outgoingMessageStore.purgeExpired().catch(() => {});
             this.observePage();
+            this.ensureComposerBindings();
             this.tick();
             setInterval(() => this.tick(), CONFIG.rootPollMs);
+            setInterval(() => {
+                try {
+                    this.ensureComposerBindings();
+                } catch (error) {
+                    console.error('[qtranslate-script] composer binding failed', error);
+                }
+            }, Math.max(250, Math.min(CONFIG.rootPollMs, 500)));
         }
 
         observePage() {
@@ -3596,6 +3764,7 @@
 
             const conversationKey = this.adapter.getConversationIdentity();
             const messageList = this.adapter.getMessageList();
+            this.ensureComposerBindings();
             if (!messageList) {
                 telemetry.capture('controller.tick.noMessageList', {
                     siteId: this.adapter.siteId,
@@ -3608,15 +3777,35 @@
                     siteId: this.adapter.siteId,
                     conversationKey,
                 }, 'warn');
-                this.resetConversationState();
+
+                const isComposerConversationChanged =
+                    this.currentConversationKey !== conversationKey ||
+                    this.currentMessageList !== null ||
+                    !this.currentConversationInitialized;
+
+                if (isComposerConversationChanged) {
+                    telemetry.capture('controller.tick.composerOnlyConversation', {
+                        siteId: this.adapter.siteId,
+                        previousConversationKey: this.currentConversationKey,
+                        nextConversationKey: conversationKey,
+                    }, 'info');
+                    this.resetObserver();
+                    this.currentMessageList = null;
+                    this.currentConversationKey = conversationKey;
+                    this.currentConversationInitialized = true;
+                    this.hydratedConversationKey = null;
+                    this.state.settings = createDefaultConversationSettings();
+                    this.pendingByAuthor.clear();
+                    this.initialBacklogPending = false;
+                    this.isProcessingInitialBacklog = false;
+                    this.hydrateIncomingSettings().catch(error => console.error('[qtranslate-script] settings hydration failed', error));
+                }
                 return;
             }
 
             if (!this.isIncomingTranslationActive()) {
                 removeBacklogProgress(messageList);
             }
-
-            this.ensureComposerBindings();
 
             const currentMessageListState = this.describeMessageList(this.currentMessageList);
             const nextMessageListState = this.describeMessageList(messageList);
@@ -3762,7 +3951,13 @@
             }
             this.currentMediaDock = null;
             this.currentControlBar = null;
-            this.currentOutgoingLanguageHost?.querySelector('[data-qts-outgoing-language-wrap="1"]')?.remove();
+            
+            const hosts = document.querySelectorAll('[data-qts-outgoing-layout]');
+            hosts.forEach(host => delete host.dataset.qtsOutgoingLayout);
+            
+            const wraps = document.querySelectorAll('[data-qts-outgoing-language-wrap="1"]');
+            wraps.forEach(wrap => wrap.remove());
+            
             this.currentOutgoingLanguageHost = null;
             this.isSendingTranslatedMessage = false;
             this.allowNativeSendClick = false;
@@ -3833,145 +4028,298 @@
         }
 
         renderOutgoingToggle() {
-            const composerToolbar = this.currentComposerInput?.closest('.inputDiv');
-            const imageButton = composerToolbar?.querySelector('[data-testid="send-image-button"], [data-paction-name="UploadPhoto"]')
-                || this.currentMediaDock?.querySelector('[data-testid="send-image-button"], [data-paction-name="UploadPhoto"]')
-                || document.querySelector('[data-testid="send-image-button"], [data-paction-name="UploadPhoto"]');
-            const visibleAnchorParent = imageButton?.parentElement || composerToolbar?.querySelector('div[style*="display: flex"]');
-            const fallbackParent = visibleAnchorParent
-                || composerToolbar
-                || this.currentMediaDock?.querySelector('.noScrollbar > div, .noScrollbar')
-                || this.currentMediaDock;
+            const containers = typeof this.adapter.findOpenPmContainers === 'function'
+                ? this.adapter.findOpenPmContainers()
+                : [this.adapter.getConversationRoot() || document.body];
+            
+            containers.forEach(conversationRoot => {
+                if (!conversationRoot) return;
+                
+                const composerInput = conversationRoot.querySelector('textarea[placeholder*="Mensaje privado"], textarea[placeholder*="Private message"], .ChatInput__input, .chat-input textarea');
+                const sendButton = conversationRoot.querySelector('button[aria-label="Enviar"], button[aria-label="Send"], .ChatInput__sendBtn, [class*="ChatInput__sendBtn"], .chat-input button[type="submit"]');
+                
+                const composerToolbar = composerInput?.closest('.inputDiv');
+                const modelChatInput = composerInput?.closest('.model-chat-input, .ChatInput__wrapper');
+                const sendParent = sendButton?.parentElement || null;
+                const mediaDock = conversationRoot.querySelector('.media-dock, .model-chat-controls, .chat-controls');
+                
+                const imageButton = composerToolbar?.querySelector('[data-testid="send-image-button"], [data-paction-name="UploadPhoto"]')
+                    || mediaDock?.querySelector('[data-testid="send-image-button"], [data-paction-name="UploadPhoto"]')
+                    || conversationRoot?.querySelector('[data-testid="send-image-button"], [data-paction-name="UploadPhoto"]');
+                const visibleAnchorParent = imageButton?.parentElement || composerToolbar?.querySelector('div[style*="display: flex"]');
+                const fallbackParent = sendParent
+                    || visibleAnchorParent
+                    || composerToolbar
+                    || mediaDock?.querySelector('.noScrollbar > div, .noScrollbar')
+                    || mediaDock;
 
-            if (!fallbackParent) {
-                telemetry.capture('ui.renderOutgoingToggle.missingHost', {
-                    siteId: this.adapter.siteId,
-                    composerToolbar,
-                    mediaDock: this.currentMediaDock,
-                    imageButton,
-                    domSnapshot: this.captureDomSnapshot('render-outgoing-toggle-missing-host', this.adapter.getConversationRoot() || document.body, {
-                        includeParent: false,
-                    }),
-                }, 'warn');
-                return;
-            }
+                if (!fallbackParent) return;
 
-            let button = document.querySelector('[data-qts-pm-outgoing-toggle="1"]');
-            if (!button) {
-                button = document.createElement('button');
-                button.type = 'button';
-                button.dataset.qtsPmOutgoingToggle = '1';
-                button.innerHTML = TRANSLATION_TOGGLE_SVG;
-                button.addEventListener('click', event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const enabled = !isOutgoingTranslationEnabled(this.state);
-                    setOutgoingTranslationEnabled(this.state, enabled);
-                    this.persistIncomingSettings();
-                    this.updateOutgoingToggleUi();
-                });
-            }
+                let button = sendParent?.querySelector('[data-qts-pm-outgoing-toggle="1"]')
+                    || fallbackParent?.querySelector('[data-qts-pm-outgoing-toggle="1"]')
+                    || conversationRoot?.querySelector('[data-qts-pm-outgoing-toggle="1"]');
+                if (!button) {
+                    button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.qtsPmOutgoingToggle = '1';
+                    button.innerHTML = this.getOutgoingToggleSvg();
+                    button.addEventListener('click', event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0 
+                            ? this.adapter.getConversationIdentity(conversationRoot)
+                            : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
 
-            const targetParent = fallbackParent;
-            if (imageButton) {
-                if (button.previousElementSibling !== imageButton || button.parentElement !== imageButton.parentElement) {
-                    imageButton.insertAdjacentElement('afterend', button);
+                        if (conversationKey) {
+                            const settingsKey = buildIncomingSettingsKey(this.adapter.siteId, conversationKey);
+                            let stored = this.incomingSettingsCache.get(settingsKey);
+                            if (!stored) {
+                                stored = {
+                                    settingsKey,
+                                    siteId: this.adapter.siteId,
+                                    conversationKey,
+                                    translationEnabled: isTranslationEnabled(this.state),
+                                    outgoingTranslationEnabled: isOutgoingTranslationEnabled(this.state),
+                                    targetLanguage: getConfiguredTargetLanguage(this.state),
+                                    outgoingTargetLanguage: getConfiguredOutgoingTargetLanguage(this.state),
+                                    updatedAt: Date.now(),
+                                };
+                            }
+                            stored.outgoingTranslationEnabled = !stored.outgoingTranslationEnabled;
+                            stored.updatedAt = Date.now();
+                            this.incomingSettingsCache.set(settingsKey, stored);
+                            this.outgoingMessageStore.putIncomingSettings(stored).catch(() => {});
+                            
+                            // Also sync it to global state if it's the primary conversation
+                            if (conversationKey === this.currentConversationKey) {
+                                setOutgoingTranslationEnabled(this.state, stored.outgoingTranslationEnabled);
+                                this.persistIncomingSettings();
+                            }
+                        }
+                        
+                        this.updateOutgoingToggleUi();
+                    });
+                } else if (button.innerHTML !== this.getOutgoingToggleSvg()) {
+                    button.innerHTML = this.getOutgoingToggleSvg();
                 }
-            } else if (button.parentElement !== targetParent) {
-                targetParent.appendChild(button);
-            }
 
-            telemetry.capture('ui.renderOutgoingToggle.completed', {
-                siteId: this.adapter.siteId,
-                targetParent,
-                hasImageButton: Boolean(imageButton),
+                this.applyOutgoingToggleTheme(button);
+
+                const duplicateButtons = conversationRoot.querySelectorAll('[data-qts-pm-outgoing-toggle="1"]');
+                duplicateButtons.forEach(node => {
+                    if (node !== button) node.remove();
+                });
+
+                const targetParent = sendParent || fallbackParent;
+                if (sendButton?.parentElement && modelChatInput?.contains(sendButton)) {
+                    if (button.parentElement !== sendButton.parentElement || button.previousElementSibling !== sendButton) {
+                        sendButton.insertAdjacentElement('afterend', button);
+                    }
+                } else if (imageButton) {
+                    if (button.previousElementSibling !== imageButton || button.parentElement !== imageButton.parentElement) {
+                        imageButton.insertAdjacentElement('afterend', button);
+                    }
+                } else if (button.parentElement !== targetParent) {
+                    targetParent.appendChild(button);
+                }
             });
 
             this.updateOutgoingToggleUi();
         }
 
-        updateOutgoingToggleUi() {
-            const button = this.currentComposerInput?.closest('.inputDiv')?.querySelector('[data-qts-pm-outgoing-toggle="1"]')
-                || document.querySelector('[data-qts-pm-outgoing-toggle="1"]');
-            if (!button) return;
+        updateOutgoingToggleUi(preferredButton = null) {
+            const containers = typeof this.adapter.findOpenPmContainers === 'function'
+                ? this.adapter.findOpenPmContainers()
+                : [this.adapter.getConversationRoot() || document.body];
 
-            const enabled = isOutgoingTranslationEnabled(this.state);
-            const targetLanguage = getConfiguredOutgoingTargetLanguage(this.state);
-            const targetLabel = getTargetLanguageLabel(targetLanguage);
-            button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-            button.setAttribute('aria-label', enabled ? `Disable outgoing translation to ${targetLabel}` : `Enable outgoing translation to ${targetLabel}`);
-            button.title = enabled ? `Outgoing translation: ${targetLabel} (on)` : `Outgoing translation: ${targetLabel} (off)`;
-            button.classList.toggle('LbQPloYMQSit0_FMAd1n', enabled);
+            containers.forEach(conversationRoot => {
+                if (!conversationRoot) return;
+                const buttons = conversationRoot.querySelectorAll('[data-qts-pm-outgoing-toggle="1"]');
+                if (!buttons.length) return;
+
+                const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0 
+                    ? this.adapter.getConversationIdentity(conversationRoot)
+                    : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
+
+                let enabled = false;
+                let targetLanguage = CONFIG.outgoingTargetLanguage;
+
+                if (conversationKey) {
+                    const settingsKey = buildIncomingSettingsKey(this.adapter.siteId, conversationKey);
+                    const stored = this.incomingSettingsCache.get(settingsKey);
+                    if (stored) {
+                        enabled = stored.outgoingTranslationEnabled ?? false;
+                        targetLanguage = stored.outgoingTargetLanguage ?? CONFIG.outgoingTargetLanguage;
+                    } else if (conversationKey === this.currentConversationKey) {
+                        enabled = isOutgoingTranslationEnabled(this.state);
+                        targetLanguage = getConfiguredOutgoingTargetLanguage(this.state);
+                    }
+                } else {
+                    enabled = isOutgoingTranslationEnabled(this.state);
+                    targetLanguage = getConfiguredOutgoingTargetLanguage(this.state);
+                }
+
+                const targetLabel = getTargetLanguageLabel(targetLanguage);
+                
+                buttons.forEach(button => {
+                    button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+                    button.setAttribute('aria-label', enabled ? `Disable outgoing translation to ${targetLabel}` : `Enable outgoing translation to ${targetLabel}`);
+                    button.title = enabled ? `Outgoing translation: ${targetLabel} (on)` : `Outgoing translation: ${targetLabel} (off)`;
+                    button.classList.toggle('LbQPloYMQSit0_FMAd1n', enabled);
+                });
+            });
         }
 
         renderOutgoingLanguageSelector() {
-            if (!this.currentOutgoingLanguageHost) {
-                telemetry.capture('ui.renderOutgoingLanguageSelector.missingHost', {
-                    siteId: this.adapter.siteId,
-                    domSnapshot: this.captureDomSnapshot('render-outgoing-language-selector-missing-host', this.adapter.getConversationRoot() || document.body, {
-                        includeParent: false,
-                    }),
-                }, 'warn');
-                return;
-            }
+            const containers = typeof this.adapter.findOpenPmContainers === 'function'
+                ? this.adapter.findOpenPmContainers()
+                : [this.adapter.getConversationRoot() || document.body];
 
-            let wrap = this.currentOutgoingLanguageHost.querySelector('[data-qts-outgoing-language-wrap="1"]');
-            if (!wrap) {
-                wrap = document.createElement('div');
-                wrap.dataset.qtsOutgoingLanguageWrap = '1';
+            containers.forEach(conversationRoot => {
+                if (!conversationRoot) return;
 
-                const label = document.createElement('span');
-                label.dataset.qtsOutgoingLanguageLabel = '1';
-                label.textContent = 'Send as';
+                const composerInput = conversationRoot.querySelector('textarea[placeholder*="Mensaje privado"], textarea[placeholder*="Private message"], .ChatInput__input, .chat-input textarea');
+                const sendButton = conversationRoot.querySelector('button[aria-label="Enviar"], button[aria-label="Send"], .ChatInput__sendBtn, [class*="ChatInput__sendBtn"], .chat-input button[type="submit"]');
+                
+                const host = (typeof this.adapter.getOutgoingLanguageHost === 'function' ? this.adapter.getOutgoingLanguageHost(conversationRoot) : null)
+                    || conversationRoot.querySelector('.model-chat-controls, .chat-controls.content-controls, .messenger-chat-header, .chat-header-content')
+                    || composerInput?.closest('.model-chat-controls, .chat-controls.content-controls, .messenger-chat-header, .chat-header-content')
+                    || sendButton?.closest('.model-chat-controls, .chat-controls.content-controls, .messenger-chat-header, .chat-header-content')
+                    || null;
 
-                const select = document.createElement('select');
-                select.dataset.qtsOutgoingLanguageSelect = '1';
-                select.setAttribute('aria-label', 'Select outgoing translation target language');
-                select.addEventListener('change', event => {
-                    event.stopPropagation();
-                    setOutgoingTargetLanguage(this.state, select.value);
-                    this.persistIncomingSettings();
-                    this.updateOutgoingLanguageUi();
-                    this.updateOutgoingToggleUi();
-                });
+                if (!host) return;
 
-                for (const optionData of OUTGOING_LANGUAGE_OPTIONS) {
-                    const option = document.createElement('option');
-                    option.value = optionData.code;
-                    option.textContent = optionData.label;
-                    select.appendChild(option);
-                }
-
-                wrap.appendChild(label);
-                wrap.appendChild(select);
-
-                const tabBar = this.currentOutgoingLanguageHost.querySelector('.tabBar');
-                const chatControlsContent = this.currentOutgoingLanguageHost.querySelector('.chat-controls-content');
-                if (tabBar?.parentElement === this.currentOutgoingLanguageHost) {
-                    tabBar.insertAdjacentElement('afterend', wrap);
-                } else if (chatControlsContent?.parentElement === this.currentOutgoingLanguageHost) {
-                    chatControlsContent.insertAdjacentElement('afterend', wrap);
-                } else if (this.currentOutgoingLanguageHost.matches('.chat-header-content, .messenger-chat-header, .chat-controls-content')) {
-                    this.currentOutgoingLanguageHost.appendChild(wrap);
+                if (host.matches('.model-chat-controls')) {
+                    host.dataset.qtsOutgoingLayout = 'model-chat';
                 } else {
-                    this.currentOutgoingLanguageHost.prepend(wrap);
+                    delete host.dataset.qtsOutgoingLayout;
                 }
-            }
 
-            telemetry.capture('ui.renderOutgoingLanguageSelector.completed', {
-                siteId: this.adapter.siteId,
-                host: this.currentOutgoingLanguageHost,
+                let wrap = host.querySelector('[data-qts-outgoing-language-wrap="1"]');
+                if (!wrap) {
+                    wrap = document.createElement('div');
+                    wrap.dataset.qtsOutgoingLanguageWrap = '1';
+
+                    const label = document.createElement('span');
+                    label.dataset.qtsOutgoingLanguageLabel = '1';
+                    label.textContent = 'Send as';
+
+                    const select = document.createElement('select');
+                    select.dataset.qtsOutgoingLanguageSelect = '1';
+                    select.setAttribute('aria-label', 'Select outgoing translation target language');
+                    select.addEventListener('change', event => {
+                        event.stopPropagation();
+                        
+                        const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0 
+                            ? this.adapter.getConversationIdentity(conversationRoot)
+                            : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
+
+                        if (conversationKey) {
+                            const settingsKey = buildIncomingSettingsKey(this.adapter.siteId, conversationKey);
+                            let stored = this.incomingSettingsCache.get(settingsKey);
+                            if (!stored) {
+                                stored = {
+                                    settingsKey,
+                                    siteId: this.adapter.siteId,
+                                    conversationKey,
+                                    translationEnabled: isTranslationEnabled(this.state),
+                                    outgoingTranslationEnabled: isOutgoingTranslationEnabled(this.state),
+                                    targetLanguage: getConfiguredTargetLanguage(this.state),
+                                    outgoingTargetLanguage: getConfiguredOutgoingTargetLanguage(this.state),
+                                    updatedAt: Date.now(),
+                                };
+                            }
+                            stored.outgoingTargetLanguage = select.value;
+                            stored.updatedAt = Date.now();
+                            this.incomingSettingsCache.set(settingsKey, stored);
+                            this.outgoingMessageStore.putIncomingSettings(stored).catch(() => {});
+
+                            if (conversationKey === this.currentConversationKey) {
+                                setOutgoingTargetLanguage(this.state, select.value);
+                                this.persistIncomingSettings();
+                            }
+                        }
+                        
+                        this.updateOutgoingLanguageUi();
+                        this.updateOutgoingToggleUi();
+                    });
+
+                    for (const optionData of OUTGOING_LANGUAGE_OPTIONS) {
+                        const option = document.createElement('option');
+                        option.value = optionData.code;
+                        option.textContent = optionData.label;
+                        select.appendChild(option);
+                    }
+
+                    wrap.appendChild(label);
+                    wrap.appendChild(select);
+                }
+
+                const select = wrap.querySelector('[data-qts-outgoing-language-select="1"]');
+                const isInteractingWithSelect = document.activeElement === select;
+
+                const tabBar = host.querySelector('.tabBar');
+                const chatControlsContent = host.querySelector('.chat-controls-content');
+                const modelChatInput = host.querySelector('.model-chat-input, .ChatInput__wrapper');
+                if (modelChatInput?.parentElement === host) {
+                    if (!isInteractingWithSelect && (wrap.previousElementSibling !== modelChatInput || wrap.parentElement !== host)) {
+                        modelChatInput.insertAdjacentElement('afterend', wrap);
+                    }
+                } else if (tabBar?.parentElement === host) {
+                    if (!isInteractingWithSelect && (wrap.previousElementSibling !== tabBar || wrap.parentElement !== host)) {
+                        tabBar.insertAdjacentElement('afterend', wrap);
+                    }
+                } else if (chatControlsContent?.parentElement === host) {
+                    if (!isInteractingWithSelect && (wrap.previousElementSibling !== chatControlsContent || wrap.parentElement !== host)) {
+                        chatControlsContent.insertAdjacentElement('afterend', wrap);
+                    }
+                } else if (host.matches('.chat-header-content, .messenger-chat-header, .chat-controls-content')) {
+                    if (!isInteractingWithSelect && wrap.parentElement !== host) {
+                        host.appendChild(wrap);
+                    }
+                } else if (!isInteractingWithSelect && (wrap.parentElement !== host || wrap !== host.firstElementChild)) {
+                    host.prepend(wrap);
+                }
             });
+
             this.updateOutgoingLanguageUi();
         }
 
         updateOutgoingLanguageUi() {
-            const select = this.currentOutgoingLanguageHost?.querySelector('[data-qts-outgoing-language-select="1"]');
-            if (!select) return;
+            const containers = typeof this.adapter.findOpenPmContainers === 'function'
+                ? this.adapter.findOpenPmContainers()
+                : [this.adapter.getConversationRoot() || document.body];
 
-            const targetLanguage = getConfiguredOutgoingTargetLanguage(this.state);
-            select.value = targetLanguage;
-            select.title = `Outgoing translation target: ${getTargetLanguageLabel(targetLanguage)}`;
+            containers.forEach(conversationRoot => {
+                if (!conversationRoot) return;
+                const selects = conversationRoot.querySelectorAll('[data-qts-outgoing-language-select="1"]');
+                if (!selects.length) return;
+
+                const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0 
+                    ? this.adapter.getConversationIdentity(conversationRoot)
+                    : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
+
+                let targetLanguage = CONFIG.outgoingTargetLanguage;
+
+                if (conversationKey) {
+                    const settingsKey = buildIncomingSettingsKey(this.adapter.siteId, conversationKey);
+                    const stored = this.incomingSettingsCache.get(settingsKey);
+                    if (stored) {
+                        targetLanguage = stored.outgoingTargetLanguage ?? CONFIG.outgoingTargetLanguage;
+                    } else if (conversationKey === this.currentConversationKey) {
+                        targetLanguage = getConfiguredOutgoingTargetLanguage(this.state);
+                    }
+                } else {
+                    targetLanguage = getConfiguredOutgoingTargetLanguage(this.state);
+                }
+
+                selects.forEach(select => {
+                    if (document.activeElement === select) return;
+                    select.value = targetLanguage;
+                    select.title = `Outgoing translation target: ${getTargetLanguageLabel(targetLanguage)}`;
+                });
+            });
         }
 
         renderPmToggle() {
@@ -4127,9 +4475,8 @@
         applyTranslationVisibilityToCurrentChat() {
             const messageList = this.currentMessageList || this.adapter.getMessageList();
             if (!messageList) return;
-            const enabled = isTranslationEnabled(this.state);
             messageList.querySelectorAll('[data-testid="chat-message-text"][data-qts-translated-text]').forEach(textNode => {
-                setMessageTranslationState(textNode, enabled);
+                setMessageTranslationState(textNode, shouldShowTranslatedForRenderedMessage(textNode, this.state));
             });
         }
 
