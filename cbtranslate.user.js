@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         cbtranslate
 // @namespace    bloomfi3ld
-// @version      1.0.2.1.8
+// @version      1.0.2.1.9
 // @description  Minimal private-message translator for adult supported sites.
 // @author       bloomfi3ld
 // @match        https://*.chaturbate.com/*
@@ -16,7 +16,6 @@
 // @grant        GM_listValues
 // @connect      translate.googleapis.com
 // @connect      clients5.google.com
-// Disabled: @connect      127.0.0.1
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -42,14 +41,14 @@
         skipMessagesAlreadyInTargetLanguage: true,
         debug: true,
         /**
-         * Configuración de telemetría.
-         * Su propósito es recopilar logs, errores y snapshots del DOM en tiempo real
-         * para poder depurar el script en producción cuando falla o cambian los selectores.
+         * Telemetría desactivada por endurecimiento de seguridad.
+         * Se conserva esta sección como punto de restauración si en el futuro
+         * quieres reactivar la instrumentación desde el historial del archivo.
          */
         telemetry: {
             enabled: false,
-            endpoint: 'http://127.0.0.1:7777/ingest',
-            endpointStorageKey: 'qtranslate-script:telemetry:endpoint',
+            endpoint: '',
+            endpointStorageKey: '',
             maxQueueSize: 1500,
             batchSize: 25,
             flushIntervalMs: 2500,
@@ -57,7 +56,7 @@
             maxStringLength: 4000,
             maxPayloadDepth: 6,
             maxArrayItems: 25,
-            mirrorConsole: true,
+            mirrorConsole: false,
             domSnapshotMaxHtmlLength: 6000,
             domSnapshotMaxTextLength: 500,
             domSnapshotCooldownMs: 15000,
@@ -89,10 +88,11 @@
     const GM_SECURE_OUTGOING_META_PREFIX = 'qts-secure-outgoing:meta:';
     const TELEMETRY_INSTALL_ID_STORAGE_KEY = 'qtranslate-script:telemetry:installId';
     const TELEMETRY_RECORDING_STORAGE_KEY = 'qtranslate-script:telemetry:recording';
-    const TELEMETRY_SESSION_ID = `qts-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const TELEMETRY_INSTALL_ID = getOrCreateTelemetryInstallId();
+    const TELEMETRY_SESSION_ID = 'telemetry-disabled';
+    const TELEMETRY_INSTALL_ID = 'telemetry-disabled';
     const DOM_SNAPSHOT_CAPTURE_STATE = new Map();
     const TRANSLATION_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="none" viewBox="0 0 14 13" role="img"><path fill="#00779F" d="M.869 8.64a.212.212 0 0 1 .367 0l.84 1.463c.075.143-.023.322-.188.322h-.352v.27c0 .593.48 1.08 1.08 1.08h1.327c.173 0 .308.135.308.308v.465a.304.304 0 0 1-.308.307H2.631a2.16 2.16 0 0 1-2.16-2.16v-.27H.216a.216.216 0 0 1-.187-.322z"></path><path fill="#00779F" fill-rule="evenodd" d="M8.54 6.78c.18-.36.766-.36.946 0l.008-.007 2.655 5.302a.534.534 0 0 1-.24.713.5.5 0 0 1-.24.06.52.52 0 0 1-.473-.293l-.915-1.83H7.754l-.915 1.83a.53.53 0 0 1-.713.24.536.536 0 0 1-.24-.712zM8.28 9.675h1.47l-.736-1.462z" clip-rule="evenodd"></path><path fill="#00779F" d="M7.01 1.583c.293 0 .533.24.533.532s-.24.533-.532.533h-.78l-.9 1.357-.068.083-.952.953 1.477 1.477V6.51c.21.21.21.54 0 .75a.53.53 0 0 1-.75 0L3.561 5.782 2.084 7.261a.53.53 0 1 1-.75-.75L2.81 5.032l-.953-.952a.526.526 0 0 1 0-.75c.21-.21.54-.21.75 0l.953.952.915-.914.48-.72H.644a.535.535 0 0 1-.533-.533c0-.292.24-.532.533-.532zM10.866 1.59a2.16 2.16 0 0 1 2.16 2.16v.27h.24c.165 0 .27.18.187.323l-.84 1.462a.212.212 0 0 1-.367 0l-.84-1.462c-.075-.143.023-.323.188-.323h.352v-.27c0-.592-.48-1.08-1.08-1.08H9.554a.304.304 0 0 1-.308-.307v-.465c0-.173.135-.308.308-.308zM3.831 0c.293 0 .533.24.533.532s-.24.533-.533.533H3.3a.535.535 0 0 1-.533-.533C2.766.24 3.006 0 3.3 0z"></path></svg>`;
+    const CHATURBATE_TRANSLATION_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="none" viewBox="0 0 14 13" role="img"><path fill="currentColor" d="M.869 8.64a.212.212 0 0 1 .367 0l.84 1.463c.075.143-.023.322-.188.322h-.352v.27c0 .593.48 1.08 1.08 1.08h1.327c.173 0 .308.135.308.308v.465a.304.304 0 0 1-.308.307H2.631a2.16 2.16 0 0 1-2.16-2.16v-.27H.216a.216.216 0 0 1-.187-.322z"></path><path fill="currentColor" fill-rule="evenodd" d="M8.54 6.78c.18-.36.766-.36.946 0l.008-.007 2.655 5.302a.534.534 0 0 1-.24.713.5.5 0 0 1-.24.06.52.52 0 0 1-.473-.293l-.915-1.83H7.754l-.915 1.83a.53.53 0 0 1-.713.24.536.536 0 0 1-.24-.712zM8.28 9.675h1.47l-.736-1.462z" clip-rule="evenodd"></path><path fill="currentColor" d="M7.01 1.583c.293 0 .533.24.533.532s-.24.533-.532.533h-.78l-.9 1.357-.068.083-.952.953 1.477 1.477V6.51c.21.21.21.54 0 .75a.53.53 0 0 1-.75 0L3.561 5.782 2.084 7.261a.53.53 0 1 1-.75-.75L2.81 5.032l-.953-.952a.526.526 0 0 1 0-.75c.21-.21.54-.21.75 0l.953.952.915-.914.48-.72H.644a.535.535 0 0 1-.533-.533c0-.292.24-.532.533-.532zM10.866 1.59a2.16 2.16 0 0 1 2.16 2.16v.27h.24c.165 0 .27.18.187.323l-.84 1.462a.212.212 0 0 1-.367 0l-.84-1.462c-.075-.143.023-.323.188-.323h.352v-.27c0-.592-.48-1.08-1.08-1.08H9.554a.304.304 0 0 1-.308-.307v-.465c0-.173.135-.308.308-.308zM3.831 0c.293 0 .533.24.533.532s-.24.533-.533.533H3.3a.535.535 0 0 1-.533-.533C2.766.24 3.006 0 3.3 0z"></path></svg>`;
     const STRIPCHAT_OUTGOING_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="none" role="img" aria-hidden="true"><path d="M3.75 3.25h8.5A1.75 1.75 0 0 1 14 5v4a1.75 1.75 0 0 1-1.75 1.75H8.3L5.35 13.1a.75.75 0 0 1-1.22-.59v-1.76h-.38A1.75 1.75 0 0 1 2 9V5c0-.97.78-1.75 1.75-1.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.45 8.15 6.8 4.95h.4l1.35 3.2m-2.55-.6h1.95" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.05 6.15h1.9M10.05 8.15h1.25" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`;
     const BACKLOG_PROGRESS_MIN_VISIBLE_MS = 900;
     const BING_LANGUAGE_OPTIONS = Object.freeze([
@@ -423,66 +423,27 @@
     }
 
     function getStoredTelemetryRecordingState() {
-        const parsed = safeJsonParse(localStorage.getItem(TELEMETRY_RECORDING_STORAGE_KEY), null);
-        if (!parsed || typeof parsed !== 'object') return null;
-        if (!parsed.active || Number(parsed.until || 0) <= Date.now()) return null;
-        return parsed;
+        return null;
     }
 
-    function setStoredTelemetryRecordingState(state) {
-        try {
-            if (!state) {
-                localStorage.removeItem(TELEMETRY_RECORDING_STORAGE_KEY);
-                return;
-            }
-            localStorage.setItem(TELEMETRY_RECORDING_STORAGE_KEY, JSON.stringify(state));
-        } catch (error) {
-            log('Failed to persist telemetry recording state', error);
-        }
-    }
+    function setStoredTelemetryRecordingState(_state) {}
 
     function collectTelemetryRecordingDomState() {
-        const selectorEntries = [
-            ['pmContainer', '#ChatTabContents.TheatermodeChatDivPm, .ChatTabContents.TheatermodeChatDivPm, .TheatermodeChatDivPm'],
-            ['chatTabContainer', '#ChatTabContainer'],
-            ['roomTabs', '#roomTabs'],
-            ['pmControlBar', '#pm-control-bar, .PMControlBar.pm-control-bar'],
-            ['messageList', '.msg-list-fvm.message-list, .message-list, [class*="message-list"]'],
-            ['stripchatMessenger', '.expanded.messenger-chat, .messenger-chat'],
-            ['stripchatControls', '.chat-controls.content-controls'],
-            ['stripchatMessages', '.content-messages'],
-            ['composerInput', 'textarea.ChatInput__input, .theatermodeInputFieldPm, textarea[placeholder*="Private message"], textarea[placeholder*="Mensaje privado"]'],
-            ['sendButton', '.ChatInput__sendBtn, [data-testid="send-button"], button[aria-label="Enviar"], button[aria-label="Send"]'],
-        ];
-
-        return {
-            readyState: document.readyState,
-            visibilityState: document.visibilityState,
-            href: location.href,
-            title: document.title,
-            activeElement: describeDomNode(document.activeElement instanceof Element ? document.activeElement : null),
-            selectorState: selectorEntries.map(([key, selector]) => {
-                const nodes = [...document.querySelectorAll(selector)];
-                return {
-                    key,
-                    selector,
-                    count: nodes.length,
-                    sample: serializeDomNode(nodes[0] || null),
-                };
-            }),
-            bodySummary: describeDomNode(document.body),
-        };
+        return null;
     }
 
     function getOrCreateTelemetryInstallId() {
-        const existing = localStorage.getItem(TELEMETRY_INSTALL_ID_STORAGE_KEY);
-        if (typeof existing === 'string' && existing.trim()) {
-            return existing.trim();
-        }
+        return 'telemetry-disabled';
+    }
 
-        const created = `qts-install-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-        localStorage.setItem(TELEMETRY_INSTALL_ID_STORAGE_KEY, created);
-        return created;
+    function purgeLegacyTelemetryState() {
+        try {
+            localStorage.removeItem(TELEMETRY_RECORDING_STORAGE_KEY);
+            localStorage.removeItem(TELEMETRY_INSTALL_ID_STORAGE_KEY);
+            if (CONFIG.telemetry.endpointStorageKey) {
+                localStorage.removeItem(CONFIG.telemetry.endpointStorageKey);
+            }
+        } catch {}
     }
 
     function bytesToBase64(bytes) {
@@ -541,286 +502,21 @@
     }
 
     /**
-     * Cliente de Telemetría.
-     * Se encarga de capturar eventos, errores y el estado del DOM, encolarlos
-     * y enviarlos por lotes (batches) al servidor de depuración configurado.
+     * Telemetría anulada por seguridad.
+     * Esta shim conserva la misma interfaz para que el resto del código no cambie.
+     * Para restaurarla en el futuro basta con recuperar desde el historial este bloque
+     * junto con el cliente original de telemetría y volver a activar CONFIG.telemetry.enabled.
      */
-    class TelemetryClient {
-        constructor() {
-            this.queue = [];
-            this.flushTimer = null;
-            this.isFlushing = false;
-            this.globalHandlersInstalled = false;
-            this.recordingInterval = null;
-            this.recordingStopTimer = null;
-            this.recordingUntil = 0;
-            this.recordingActive = false;
-            this.lastRecordingMutationAt = 0;
-        }
-
-        start() {
-            if (this.flushTimer) return;
-            this.installGlobalHandlers();
-            this.flushTimer = setInterval(() => {
-                this.flush('interval').catch(() => {});
-            }, CONFIG.telemetry.flushIntervalMs);
-            this.capture('telemetry.started', {
-                installId: TELEMETRY_INSTALL_ID,
-                sessionId: TELEMETRY_SESSION_ID,
-                configuredEndpoint: this.getEndpoint(),
-                href: location.href,
-                userAgent: navigator.userAgent,
-            }, 'info');
-            const restoredRecordingState = getStoredTelemetryRecordingState();
-            if (restoredRecordingState) {
-                this.startRecording('restored', {
-                    until: Number(restoredRecordingState.until),
-                    restored: true,
-                    origin: restoredRecordingState.origin || null,
-                });
-            }
-        }
-
-        installGlobalHandlers() {
-            if (this.globalHandlersInstalled) return;
-            this.globalHandlersInstalled = true;
-
-            window.addEventListener('error', event => {
-                this.capture('runtime.error', {
-                    message: event.message,
-                    filename: event.filename,
-                    lineno: event.lineno,
-                    colno: event.colno,
-                    error: event.error,
-                }, 'error');
-            });
-
-            window.addEventListener('unhandledrejection', event => {
-                this.capture('runtime.unhandledrejection', {
-                    reason: event.reason,
-                }, 'error');
-            });
-
-            window.addEventListener('beforeunload', () => {
-                this.flush('beforeunload').catch(() => {});
-            });
-        }
-
-        getEndpoint() {
-            const runtimeOverride = window.__QTS_TELEMETRY_ENDPOINT;
-            if (typeof runtimeOverride === 'string' && runtimeOverride.trim()) {
-                return runtimeOverride.trim();
-            }
-
-            const stored = localStorage.getItem(CONFIG.telemetry.endpointStorageKey);
-            if (typeof stored === 'string' && stored.trim()) {
-                return stored.trim();
-            }
-
-            return CONFIG.telemetry.endpoint || '';
-        }
-
-        isRecording() {
-            return this.recordingActive && this.recordingUntil > Date.now();
-        }
-
-        getRecordingRemainingMs() {
-            return Math.max(0, this.recordingUntil - Date.now());
-        }
-
-        notifyRecordingStateChanged() {
-            window.dispatchEvent(new CustomEvent('qts-telemetry-recording-changed', {
-                detail: {
-                    active: this.isRecording(),
-                    remainingMs: this.getRecordingRemainingMs(),
-                    until: this.recordingUntil || 0,
-                },
-            }));
-        }
-
-        recordDetailedSnapshot(source, extra = {}, level = 'info') {
-            if (!this.isRecording()) return;
-            this.capture('telemetry.recording.snapshot', {
-                source,
-                remainingMs: this.getRecordingRemainingMs(),
-                domState: collectTelemetryRecordingDomState(),
-                domSnapshot: captureDomSnapshot(`recording:${source}`, document.body, {
-                    includeParent: false,
-                    ignoreCooldown: true,
-                    extra,
-                }),
-                extra,
-            }, level);
-        }
-
-        captureRecordingMutation(source, extra = {}) {
-            if (!this.isRecording()) return;
-            const now = Date.now();
-            if (now - this.lastRecordingMutationAt < CONFIG.telemetry.recordingMutationThrottleMs) {
-                return;
-            }
-            this.lastRecordingMutationAt = now;
-            this.recordDetailedSnapshot(source, extra, 'info');
-        }
-
-        startRecording(reason = 'manual', options = {}) {
-            const requestedUntil = Number(options.until || 0);
-            const until = requestedUntil > Date.now()
-                ? requestedUntil
-                : Date.now() + CONFIG.telemetry.recordingDurationMs;
-
-            if (this.recordingInterval) clearInterval(this.recordingInterval);
-            if (this.recordingStopTimer) clearTimeout(this.recordingStopTimer);
-
-            this.recordingActive = true;
-            this.recordingUntil = until;
-            this.lastRecordingMutationAt = 0;
-
-            setStoredTelemetryRecordingState({
-                active: true,
-                until,
-                origin: options.origin || location.href,
-                startedAt: Date.now(),
-            });
-
-            this.capture('telemetry.recording.started', {
-                reason,
-                restored: Boolean(options.restored),
-                until: new Date(until).toISOString(),
-                durationMs: until - Date.now(),
-                domState: collectTelemetryRecordingDomState(),
-            }, 'info');
-            this.recordDetailedSnapshot('recording-start', {
-                reason,
-                restored: Boolean(options.restored),
-            });
-
-            this.recordingInterval = setInterval(() => {
-                this.recordDetailedSnapshot('recording-interval');
-            }, CONFIG.telemetry.recordingSnapshotIntervalMs);
-
-            this.recordingStopTimer = setTimeout(() => {
-                this.stopRecording('timeout');
-            }, Math.max(0, until - Date.now()));
-
-            this.notifyRecordingStateChanged();
-        }
-
-        stopRecording(reason = 'manual') {
-            const wasActive = this.recordingActive;
-            const remainingMs = this.getRecordingRemainingMs();
-
-            if (this.recordingInterval) {
-                clearInterval(this.recordingInterval);
-                this.recordingInterval = null;
-            }
-            if (this.recordingStopTimer) {
-                clearTimeout(this.recordingStopTimer);
-                this.recordingStopTimer = null;
-            }
-
-            this.recordingActive = false;
-            this.recordingUntil = 0;
-            this.lastRecordingMutationAt = 0;
-            setStoredTelemetryRecordingState(null);
-
-            if (wasActive) {
-                this.capture('telemetry.recording.stopped', {
-                    reason,
-                    remainingMs,
-                    domState: collectTelemetryRecordingDomState(),
-                }, 'info');
-                this.flush(`recording-stop:${reason}`).catch(() => {});
-            }
-
-            this.notifyRecordingStateChanged();
-        }
-
-        capture(event, payload = {}, level = 'debug') {
-            if (!CONFIG.telemetry.enabled) return;
-
-            const entry = {
-                id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-                ts: new Date().toISOString(),
-                installId: TELEMETRY_INSTALL_ID,
-                sessionId: TELEMETRY_SESSION_ID,
-                level,
-                event,
-                page: {
-                    href: location.href,
-                    host: location.hostname,
-                    title: document.title,
-                },
-                recording: {
-                    active: this.isRecording(),
-                    remainingMs: this.getRecordingRemainingMs(),
-                },
-                payload: sanitizeTelemetryValue(payload),
-            };
-
-            this.queue.push(entry);
-            if (this.queue.length > CONFIG.telemetry.maxQueueSize) {
-                // console.warn(`[qtranslate-script] Telemetry queue overflow, dropping ${this.queue.length - CONFIG.telemetry.maxQueueSize} events`);
-                this.queue.splice(0, this.queue.length - CONFIG.telemetry.maxQueueSize);
-            }
-
-            if (CONFIG.telemetry.mirrorConsole) {
-                const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'debug';
-                console[method]('[qtranslate-telemetry]', event, entry.payload);
-            }
-
-            if (this.queue.length >= CONFIG.telemetry.batchSize) {
-                this.flush('threshold').catch(() => {});
-            }
-        }
-
-        async flush(reason = 'manual') {
-            const endpoint = this.getEndpoint();
-            if (!endpoint || this.isFlushing || !this.queue.length || typeof GM_xmlhttpRequest !== 'function') {
-                return;
-            }
-
-            this.isFlushing = true;
-            const batch = this.queue.splice(0, CONFIG.telemetry.batchSize);
-
-            try {
-                await new Promise((resolve, reject) => {
-                    GM_xmlhttpRequest({
-                        method: 'POST',
-                        url: endpoint,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Accept: 'application/json, text/plain, */*',
-                        },
-                        data: JSON.stringify({
-                            reason,
-                            sentAt: new Date().toISOString(),
-                            installId: TELEMETRY_INSTALL_ID,
-                            sessionId: TELEMETRY_SESSION_ID,
-                            events: batch,
-                        }),
-                        timeout: CONFIG.telemetry.requestTimeoutMs,
-                        onload: response => {
-                            if (response.status >= 200 && response.status < 300) {
-                                resolve(response);
-                            } else {
-                                reject(new Error(`Telemetry HTTP ${response.status}: ${response.responseText}`));
-                            }
-                        },
-                        onerror: reject,
-                        ontimeout: () => reject(new Error('Telemetry request timed out')),
-                    });
-                });
-            } catch (error) {
-                this.queue.unshift(...batch);
-                console.error('[qtranslate-telemetry] flush failed', error);
-            } finally {
-                this.isFlushing = false;
-            }
-        }
-    }
-
-    const telemetry = new TelemetryClient();
+    const telemetry = Object.freeze({
+        start() {},
+        capture(_event, _payload = {}, _level = 'debug') {},
+        recordDetailedSnapshot(_source, _extra = {}, _level = 'info') {},
+        captureRecordingMutation(_source, _extra = {}) {},
+        startRecording(_reason = 'manual', _options = {}) {},
+        stopRecording(_reason = 'manual') {},
+        isRecording() { return false; },
+        getRecordingRemainingMs() { return 0; },
+    });
 
     function loadState() {
         const rawValue = localStorage.getItem(STORAGE_KEY);
@@ -1252,19 +948,28 @@
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
+                padding: 0;
+                margin: 0;
+                border: none;
+                background: transparent;
+                color: inherit;
+                opacity: 1;
+                cursor: pointer;
+                box-shadow: none;
+                position: relative;
+                z-index: 100;
+                pointer-events: auto !important;
+                transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="chaturbate"] {
                 width: 22px;
                 min-width: 22px;
                 height: 22px;
                 margin-right: 6px;
-                border: 1px solid rgba(255, 82, 82, 0.52);
-                border-radius: 999px;
-                padding: 0;
-                background: rgba(120, 18, 18, 0.20);
-                color: inherit;
-                opacity: 1;
-                cursor: pointer;
-                box-shadow: inset 0 0 0 1px rgba(255, 82, 82, 0.10);
-                transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+                border: none;
+                border-radius: 4px;
+                background: transparent;
+                color: rgba(148, 163, 184, 0.92);
             }
             [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"] {
                 width: 40px;
@@ -1273,8 +978,8 @@
                 margin-left: 12px;
                 margin-right: 0;
                 flex-shrink: 0;
-                border-width: 1px;
-                border-color: rgba(255, 255, 255, 0.38);
+                border: 1px solid rgba(255, 255, 255, 0.38);
+                border-radius: 999px;
                 background: rgba(255, 255, 255, 0.10);
                 box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
                 color: rgba(255, 255, 255, 0.98);
@@ -1282,15 +987,31 @@
                 z-index: 100;
                 pointer-events: auto !important;
             }
-
-            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"] svg {
-                pointer-events: none !important;
-            }
             [data-qts-pm-outgoing-toggle="1"] svg {
                 width: 14px;
                 height: 14px;
-                opacity: 0.92;
-                filter: grayscale(0.1) saturate(1.2) brightness(1.05);
+                opacity: 0.42;
+                filter: grayscale(1) saturate(0) brightness(1.25);
+                pointer-events: none !important;
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="chaturbate"]:hover {
+                background: rgba(255, 255, 255, 0.08);
+                color: #2fbccc;
+                box-shadow: inset 0 0 0 1px rgba(47, 188, 204, 0.45);
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="chaturbate"][aria-pressed="true"] {
+                background: transparent;
+                color: #2fbccc;
+                box-shadow: inset 0 0 0 1px rgba(47, 188, 204, 0.62);
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="chaturbate"] svg {
+                opacity: 1;
+                filter: none;
+            }
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="chaturbate"]:hover svg,
+            [data-qts-pm-outgoing-toggle="1"][data-qts-theme="chaturbate"][aria-pressed="true"] svg {
+                opacity: 1;
+                filter: none;
             }
             [data-qts-pm-outgoing-toggle="1"][data-qts-theme="stripchat"] svg {
                 width: 20px;
@@ -1313,49 +1034,70 @@
                 opacity: 1;
                 filter: none;
             }
-            [data-qts-pm-outgoing-toggle="1"]:hover {
-                background: rgba(156, 28, 28, 0.28);
-                border-color: rgba(255, 96, 96, 0.72);
-                box-shadow: inset 0 0 0 1px rgba(255, 96, 96, 0.16);
-            }
-            [data-qts-pm-outgoing-toggle="1"][aria-pressed="true"] {
-                border-color: rgba(255, 78, 78, 0.96);
-                background: rgba(191, 24, 24, 0.52);
-                box-shadow: inset 0 0 0 1px rgba(255, 132, 132, 0.30), 0 0 0 1px rgba(96, 8, 8, 0.20);
-            }
-            [data-qts-pm-outgoing-toggle="1"][aria-pressed="true"] svg {
-                opacity: 1;
-                filter: saturate(1.15) brightness(1.08);
-            }
             [data-qts-pm-toggle-button="1"] {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
+                padding: 0;
+                border: none;
+                background: transparent;
+                color: inherit;
+                cursor: pointer;
+                position: relative;
+                z-index: 100;
+                pointer-events: auto !important;
+                transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease;
+            }
+            [data-qts-pm-toggle-button="1"][data-qts-theme="chaturbate"] {
                 width: 22px;
                 height: 22px;
-                padding: 0;
+                border: none;
+                border-radius: 4px;
+                background: transparent;
+                color: rgba(148, 163, 184, 0.92);
+            }
+            [data-qts-pm-toggle-button="1"][data-qts-theme="stripchat"] {
+                width: 22px;
+                height: 22px;
                 border: 1px solid rgba(255, 255, 255, 0.16);
                 border-radius: 999px;
                 background: rgba(0, 0, 0, 0.16);
-                color: inherit;
-                cursor: pointer;
-                transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease;
             }
             [data-qts-pm-toggle-button="1"] svg {
                 width: 14px;
                 height: 14px;
                 opacity: 0.42;
                 filter: grayscale(1) saturate(0) brightness(1.25);
+                pointer-events: none !important;
             }
-            [data-qts-pm-toggle-button="1"]:hover {
+            [data-qts-pm-toggle-button="1"][data-qts-theme="chaturbate"]:hover {
+                background: rgba(255, 255, 255, 0.08);
+                color: #2fbccc;
+                box-shadow: inset 0 0 0 1px rgba(47, 188, 204, 0.45);
+            }
+            [data-qts-pm-toggle-button="1"][data-qts-theme="chaturbate"][aria-pressed="true"] {
+                background: transparent;
+                color: #2fbccc;
+                box-shadow: inset 0 0 0 1px rgba(47, 188, 204, 0.62);
+            }
+            [data-qts-pm-toggle-button="1"][data-qts-theme="chaturbate"] svg {
+                opacity: 1;
+                filter: none;
+            }
+            [data-qts-pm-toggle-button="1"][data-qts-theme="chaturbate"]:hover svg,
+            [data-qts-pm-toggle-button="1"][data-qts-theme="chaturbate"][aria-pressed="true"] svg {
+                opacity: 1;
+                filter: none;
+            }
+            [data-qts-pm-toggle-button="1"][data-qts-theme="stripchat"]:hover {
                 background: rgba(255, 255, 255, 0.08);
             }
-            [data-qts-pm-toggle-button="1"][aria-pressed="true"] {
+            [data-qts-pm-toggle-button="1"][data-qts-theme="stripchat"][aria-pressed="true"] {
                 border-color: rgba(47, 188, 255, 0.72);
                 background: rgba(0, 119, 159, 0.18);
                 box-shadow: inset 0 0 0 1px rgba(47, 188, 255, 0.18);
             }
-            [data-qts-pm-toggle-button="1"][aria-pressed="true"] svg {
+            [data-qts-pm-toggle-button="1"][data-qts-theme="stripchat"][aria-pressed="true"] svg {
                 opacity: 1;
                 filter: none;
             }
@@ -3535,7 +3277,7 @@
         getOutgoingToggleSvg() {
             return this.adapter.siteId === 'stripchat-pm'
                 ? STRIPCHAT_OUTGOING_TOGGLE_SVG
-                : TRANSLATION_TOGGLE_SVG;
+                : CHATURBATE_TRANSLATION_TOGGLE_SVG;
         }
 
         applyOutgoingToggleTheme(button) {
@@ -3543,7 +3285,7 @@
             if (this.adapter.siteId === 'stripchat-pm') {
                 button.dataset.qtsTheme = 'stripchat';
             } else {
-                delete button.dataset.qtsTheme;
+                button.dataset.qtsTheme = 'chaturbate';
             }
         }
 
@@ -4066,7 +3808,6 @@
                     button.addEventListener('click', event => {
                         event.preventDefault();
                         event.stopPropagation();
-                        
                         const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0 
                             ? this.adapter.getConversationIdentity(conversationRoot)
                             : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
@@ -4163,10 +3904,18 @@
                 const targetLabel = getTargetLanguageLabel(targetLanguage);
                 
                 buttons.forEach(button => {
+                    this.applyOutgoingToggleTheme(button);
                     button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
                     button.setAttribute('aria-label', enabled ? `Disable outgoing translation to ${targetLabel}` : `Enable outgoing translation to ${targetLabel}`);
                     button.title = enabled ? `Outgoing translation: ${targetLabel} (on)` : `Outgoing translation: ${targetLabel} (off)`;
-                    button.classList.toggle('LbQPloYMQSit0_FMAd1n', enabled);
+                    if (button.dataset.qtsTheme === 'stripchat') {
+                        button.classList.toggle('LbQPloYMQSit0_FMAd1n', enabled);
+                    } else {
+                        button.classList.remove('LbQPloYMQSit0_FMAd1n');
+                        button.style.removeProperty('background-color');
+                        button.style.removeProperty('border');
+                        button.style.removeProperty('box-shadow');
+                    }
                 });
             });
         }
@@ -4368,9 +4117,12 @@
 
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'ebCySkD4Gv8pQdxw8kqa';
+                button.className = '';
                 button.dataset.qtsPmToggleButton = '1';
-                button.innerHTML = TRANSLATION_TOGGLE_SVG;
+                button.innerHTML = this.adapter.siteId === 'stripchat-pm'
+                    ? TRANSLATION_TOGGLE_SVG
+                    : CHATURBATE_TRANSLATION_TOGGLE_SVG;
+                button.dataset.qtsTheme = this.adapter.siteId === 'stripchat-pm' ? 'stripchat' : 'chaturbate';
                 button.addEventListener('click', event => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -4383,6 +4135,14 @@
                 wrap.appendChild(select);
                 wrap.appendChild(button);
                 this.currentControlBar.appendChild(wrap);
+            } else {
+                const button = wrap.querySelector('[data-qts-pm-toggle-button="1"]');
+                const expectedIcon = this.adapter.siteId === 'stripchat-pm'
+                    ? TRANSLATION_TOGGLE_SVG
+                    : CHATURBATE_TRANSLATION_TOGGLE_SVG;
+                if (button && button.innerHTML !== expectedIcon) {
+                    button.innerHTML = expectedIcon;
+                }
             }
 
             telemetry.capture('ui.renderPmToggle.completed', {
@@ -4402,10 +4162,18 @@
             select.title = configuredTarget === 'auto'
                 ? `Auto-detect (${getTargetLanguageLabel(effectiveTarget)})`
                 : getTargetLanguageLabel(effectiveTarget);
+            button.dataset.qtsTheme = this.adapter.siteId === 'stripchat-pm' ? 'stripchat' : 'chaturbate';
             button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
             button.setAttribute('aria-label', enabled ? 'Disable translation in this chat' : 'Enable translation in this chat');
             button.title = enabled ? 'Translation in this chat: on' : 'Translation in this chat: off';
-            button.classList.toggle('LbQPloYMQSit0_FMAd1n', enabled);
+            if (button.dataset.qtsTheme === 'stripchat') {
+                button.classList.toggle('LbQPloYMQSit0_FMAd1n', enabled);
+            } else {
+                button.classList.remove('ebCySkD4Gv8pQdxw8kqa', 'LbQPloYMQSit0_FMAd1n');
+                button.style.removeProperty('background-color');
+                button.style.removeProperty('border');
+                button.style.removeProperty('box-shadow');
+            }
         }
 
         handleTranslationToggleChange(enabled) {
@@ -5201,6 +4969,7 @@
      * la API de traducción, el controlador central y arranca el ciclo de vida del script.
      */
     function bootstrap() {
+        purgeLegacyTelemetryState();
         telemetry.start();
         telemetry.capture('bootstrap.start', {
             href: location.href,
