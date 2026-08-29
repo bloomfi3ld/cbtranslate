@@ -1,4 +1,5 @@
 
+
 # CBTranslate - Alternativa Libre a qTranslate para web para adultos / Free Open Source Alternative to qTranslate for adult websites
 
   
@@ -75,6 +76,12 @@ Con Tampermonkey activo, simplemente haz clic en el siguiente enlace. Se abrirá
 
 ![enter image description here](https://i.ibb.co/k6xhqmXc/6.png)
 
+How to use in chaturbate
+![enter image description here](https://i.ibb.co/sXmGdct/cb-1.png)
+![enter image description here](https://i.ibb.co/FbVTS7kT/cb-3.png)
+![enter image description here](https://i.ibb.co/TMg0Bs4Z/cb-4.png)
+![enter image description here](https://i.ibb.co/RLPcQ80/cb-5.png)
+How to use in stripchat
 ![enter image description here](https://i.ibb.co/0jywCzh8/7.png)
 
 ![enter image description here](https://i.ibb.co/93Vdz4Gc/8.png)
