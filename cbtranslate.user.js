@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         cbtranslate
 // @namespace    bloomfi3ld
-// @version      1.0.2.1.9
+// @version      1.0.2.2.0
 // @description  Minimal private-message translator for adult supported sites.
 // @author       bloomfi3ld
 // @match        https://*.chaturbate.com/*
@@ -16,6 +16,7 @@
 // @grant        GM_listValues
 // @connect      translate.googleapis.com
 // @connect      clients5.google.com
+// @connect      flagcdn.com
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -95,6 +96,22 @@
     const CHATURBATE_TRANSLATION_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="none" viewBox="0 0 14 13" role="img"><path fill="currentColor" d="M.869 8.64a.212.212 0 0 1 .367 0l.84 1.463c.075.143-.023.322-.188.322h-.352v.27c0 .593.48 1.08 1.08 1.08h1.327c.173 0 .308.135.308.308v.465a.304.304 0 0 1-.308.307H2.631a2.16 2.16 0 0 1-2.16-2.16v-.27H.216a.216.216 0 0 1-.187-.322z"></path><path fill="currentColor" fill-rule="evenodd" d="M8.54 6.78c.18-.36.766-.36.946 0l.008-.007 2.655 5.302a.534.534 0 0 1-.24.713.5.5 0 0 1-.24.06.52.52 0 0 1-.473-.293l-.915-1.83H7.754l-.915 1.83a.53.53 0 0 1-.713.24.536.536 0 0 1-.24-.712zM8.28 9.675h1.47l-.736-1.462z" clip-rule="evenodd"></path><path fill="currentColor" d="M7.01 1.583c.293 0 .533.24.533.532s-.24.533-.532.533h-.78l-.9 1.357-.068.083-.952.953 1.477 1.477V6.51c.21.21.21.54 0 .75a.53.53 0 0 1-.75 0L3.561 5.782 2.084 7.261a.53.53 0 1 1-.75-.75L2.81 5.032l-.953-.952a.526.526 0 0 1 0-.75c.21-.21.54-.21.75 0l.953.952.915-.914.48-.72H.644a.535.535 0 0 1-.533-.533c0-.292.24-.532.533-.532zM10.866 1.59a2.16 2.16 0 0 1 2.16 2.16v.27h.24c.165 0 .27.18.187.323l-.84 1.462a.212.212 0 0 1-.367 0l-.84-1.462c-.075-.143.023-.323.188-.323h.352v-.27c0-.592-.48-1.08-1.08-1.08H9.554a.304.304 0 0 1-.308-.307v-.465c0-.173.135-.308.308-.308zM3.831 0c.293 0 .533.24.533.532s-.24.533-.533.533H3.3a.535.535 0 0 1-.533-.533C2.766.24 3.006 0 3.3 0z"></path></svg>`;
     const STRIPCHAT_OUTGOING_TOGGLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="none" role="img" aria-hidden="true"><path d="M3.75 3.25h8.5A1.75 1.75 0 0 1 14 5v4a1.75 1.75 0 0 1-1.75 1.75H8.3L5.35 13.1a.75.75 0 0 1-1.22-.59v-1.76h-.38A1.75 1.75 0 0 1 2 9V5c0-.97.78-1.75 1.75-1.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.45 8.15 6.8 4.95h.4l1.35 3.2m-2.55-.6h1.95" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.05 6.15h1.9M10.05 8.15h1.25" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`;
     const BACKLOG_PROGRESS_MIN_VISIBLE_MS = 900;
+    const MESSAGE_CONTENT_RESIZED_EVENT = 'qts-message-content-resized';
+    const FLAG_IMAGE_STORAGE_PREFIX = 'qts-flag-image:';
+    const FLAG_IMAGE_URL = country => `https://flagcdn.com/w40/${country}.png`;
+    // Idioma -> país de la bandera que se muestra junto a la traducción.
+    const LANGUAGE_FLAG_COUNTRIES = Object.freeze({
+        af: 'za', am: 'et', ar: 'sa', az: 'az', be: 'by', bg: 'bg', bn: 'bd', bs: 'ba', cs: 'cz', cy: 'gb-wls',
+        da: 'dk', de: 'de', el: 'gr', en: 'us', 'en-gb': 'gb', es: 'es', 'es-mx': 'mx', et: 'ee', fa: 'ir',
+        fi: 'fi', fil: 'ph', tl: 'ph', fr: 'fr', 'fr-ca': 'ca', ga: 'ie', he: 'il', iw: 'il', hi: 'in', hr: 'hr',
+        ht: 'ht', hu: 'hu', hy: 'am', id: 'id', is: 'is', it: 'it', ja: 'jp', ka: 'ge', kk: 'kz', km: 'kh',
+        ko: 'kr', ky: 'kg', lb: 'lu', lo: 'la', lt: 'lt', lv: 'lv', mg: 'mg', mi: 'nz', mk: 'mk', mn: 'mn',
+        ms: 'my', mt: 'mt', my: 'mm', nb: 'no', no: 'no', ne: 'np', nl: 'nl', pa: 'in', pl: 'pl', ps: 'af',
+        pt: 'br', 'pt-pt': 'pt', ro: 'ro', ru: 'ru', si: 'lk', sk: 'sk', sl: 'si', so: 'so', sq: 'al',
+        sr: 'rs', sv: 'se', sw: 'ke', ta: 'in', te: 'in', th: 'th', tk: 'tm', tr: 'tr', uk: 'ua', ur: 'pk',
+        uz: 'uz', vi: 'vn', zh: 'cn', 'zh-cn': 'cn', 'zh-hans': 'cn', 'zh-tw': 'tw', 'zh-hant': 'tw', zu: 'za',
+    });
+    const FLAG_IMAGE_REQUESTS = new Map();
     const BING_LANGUAGE_OPTIONS = Object.freeze([
         { code: 'auto', label: 'Auto-detect' },
         { code: 'es', label: 'Spanish (Español)' },
@@ -704,11 +721,76 @@
             .${TRANSLATION_BLOCK_CLASS}[data-status="pending"] {
                 opacity: 0.68;
             }
-            [data-testid="chat-message-text"][data-qts-pending="1"] {
+            [data-testid="chat-message-text"][data-qts-pending="1"],
+            [data-qts-content-mode="overlay"][data-qts-pending="1"] {
                 opacity: 0.72;
             }
             [data-qts-message-content="1"] {
                 white-space: pre-wrap;
+            }
+            [data-qts-content-mode="overlay"][data-qts-showing="translated"] > :not([data-qts-message-content="1"]):not([data-qts-toggle="1"]):not([data-qts-status="1"]):not([data-qts-flag="1"]) {
+                display: none !important;
+            }
+            [data-qts-content-mode="overlay"]:not([data-qts-showing="translated"]) > [data-qts-message-content="1"] {
+                display: none !important;
+            }
+            [data-qts-flag="1"] {
+                display: inline-block;
+                margin-right: 5px;
+                line-height: 1;
+                vertical-align: -1px;
+            }
+            [data-qts-flag="1"] > img {
+                display: block;
+                width: 16px;
+                height: 12px;
+                border-radius: 2px;
+                object-fit: cover;
+            }
+            :not([data-qts-showing="translated"]) > [data-qts-flag="1"] {
+                display: none !important;
+            }
+            [data-qts-cb-header-slot="1"] {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-left: auto;
+                flex-shrink: 0;
+            }
+            [data-qts-cb-header-slot="1"] [data-qts-pm-toggle-wrap="1"] {
+                margin: 0;
+            }
+            [data-qts-cb-header-slot="1"] [data-qts-outgoing-language-wrap="1"] {
+                margin: 0;
+                padding: 0;
+            }
+            [data-qts-cb-header-slot="1"] [data-qts-outgoing-language-select="1"] {
+                min-width: 0;
+                max-width: 150px;
+            }
+            [data-testid="paid-messaging-menu-and-inputs"] {
+                position: relative;
+            }
+            [data-testid="paid-messaging-menu-and-inputs"] [data-qts-pm-outgoing-toggle="1"] {
+                align-self: center;
+                margin: 0 4px 0 0;
+            }
+            [data-testid="paid-messaging-menu-and-inputs"] > [data-qts-composer-status="1"] {
+                position: absolute;
+                right: 12px;
+                bottom: 100%;
+                margin: 0 0 2px;
+                pointer-events: none;
+            }
+            [data-testid="virtual-list"] > [data-qts-backlog-progress="1"] {
+                position: relative;
+                z-index: 2;
+                width: max-content;
+                margin: -34px auto 0;
+                padding: 4px 10px;
+                border-radius: 999px;
+                background: rgba(0, 0, 0, 0.55);
+                pointer-events: none;
             }
             .translation-toggle-container[data-qts-toggle="1"] {
                 display: inline-flex;
@@ -1170,7 +1252,7 @@
 
         const clone = textNode.cloneNode(true);
         clone.querySelectorAll(
-            '.message-indicators, .translation-toggle-container, [data-qts-status="1"], [data-qts-backlog-progress="1"], .chat-message-translate-button'
+            '.message-indicators, .translation-toggle-container, [data-qts-status="1"], [data-qts-flag="1"], [data-qts-backlog-progress="1"], .chat-message-translate-button'
         ).forEach(node => node.remove());
 
         return normalizeWhitespace(clone.textContent || '');
@@ -1677,9 +1759,149 @@
         throw lastError || new Error('Unknown retry failure');
     }
 
+    /**
+     * Modo "overlay": el nodo de texto lo gestiona React (nueva UI de mensajes de Chaturbate),
+     * así que no tocamos sus hijos. Añadimos un span propio con la traducción y el CSS
+     * alterna cuál de los dos se ve según data-qts-showing.
+     */
+    function isOverlayTextNode(textNode) {
+        return textNode?.dataset?.qtsContentMode === 'overlay';
+    }
+
+    function notifyMessageContentResized(textNode) {
+        textNode?.dispatchEvent(new CustomEvent(MESSAGE_CONTENT_RESIZED_EVENT, { bubbles: true }));
+    }
+
+    function resolveFlagCountry(languageCode) {
+        const normalized = normalizeLanguageCandidate(languageCode);
+        if (!normalized || normalized === 'auto') return null;
+        return LANGUAGE_FLAG_COUNTRIES[normalized] || LANGUAGE_FLAG_COUNTRIES[normalized.split('-')[0]] || null;
+    }
+
+    function countryToFlagEmoji(country) {
+        const letters = String(country || '').slice(0, 2).toUpperCase();
+        if (!/^[A-Z]{2}$/.test(letters)) return '🌐';
+        return String.fromCodePoint(...[...letters].map(letter => 0x1F1E6 + letter.charCodeAt(0) - 65));
+    }
+
+    /**
+     * Windows no dibuja emojis de bandera (salen como "ES", "US"...), así que se usa una imagen.
+     * Se descarga con GM_xmlhttpRequest y se inserta como data: URL porque la CSP de los sitios
+     * no permite cargar imágenes de flagcdn.com directamente. Se guarda en el almacenamiento del script.
+     */
+    function loadFlagImage(country) {
+        if (FLAG_IMAGE_REQUESTS.has(country)) return FLAG_IMAGE_REQUESTS.get(country);
+
+        const storageKey = `${FLAG_IMAGE_STORAGE_PREFIX}${country}`;
+        const stored = gmGetJson(storageKey, null);
+        if (typeof stored === 'string' && stored.startsWith('data:image/')) {
+            const cached = Promise.resolve(stored);
+            FLAG_IMAGE_REQUESTS.set(country, cached);
+            return cached;
+        }
+
+        const request = new Promise(resolve => {
+            if (typeof GM_xmlhttpRequest !== 'function') {
+                resolve(null);
+                return;
+            }
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: FLAG_IMAGE_URL(country),
+                responseType: 'arraybuffer',
+                timeout: 15000,
+                onload: response => {
+                    if (response.status < 200 || response.status >= 300 || !response.response) {
+                        resolve(null);
+                        return;
+                    }
+                    const dataUrl = `data:image/png;base64,${bytesToBase64(new Uint8Array(response.response))}`;
+                    gmSetJson(storageKey, dataUrl);
+                    resolve(dataUrl);
+                },
+                onerror: () => resolve(null),
+                ontimeout: () => resolve(null),
+            });
+        }).then(dataUrl => {
+            // Si falla, se olvida para reintentar en el siguiente mensaje; mientras, queda el emoji.
+            if (!dataUrl) FLAG_IMAGE_REQUESTS.delete(country);
+            return dataUrl;
+        });
+        FLAG_IMAGE_REQUESTS.set(country, request);
+        return request;
+    }
+
+    function renderLanguageFlag(textNode, contentNode) {
+        const languageCode = textNode.dataset.qtsDetectedLanguage;
+        const country = resolveFlagCountry(languageCode);
+        let flagNode = textNode.querySelector(':scope > [data-qts-flag="1"]');
+        if (!country) {
+            flagNode?.remove();
+            return;
+        }
+
+        if (!flagNode) {
+            flagNode = document.createElement('span');
+            flagNode.dataset.qtsFlag = '1';
+        }
+        if (contentNode.parentNode === textNode && flagNode.nextSibling !== contentNode) {
+            textNode.insertBefore(flagNode, contentNode);
+        }
+        flagNode.title = getTargetLanguageLabel(findSupportedLanguageCode(languageCode) || languageCode);
+        if (flagNode.dataset.qtsFlagCountry === country) return;
+
+        const emoji = countryToFlagEmoji(country);
+        flagNode.dataset.qtsFlagCountry = country;
+        flagNode.textContent = emoji;
+        loadFlagImage(country).then(dataUrl => {
+            if (!dataUrl || flagNode.dataset.qtsFlagCountry !== country) return;
+            const image = document.createElement('img');
+            image.src = dataUrl;
+            image.alt = emoji;
+            image.width = 16;
+            image.height = 12;
+            flagNode.replaceChildren(image);
+        });
+    }
+
+    /**
+     * Lee las props de React de un nodo recorriendo su fiber hacia arriba.
+     * Devuelve null si el userscript no puede ver las propiedades internas de React.
+     */
+    function findReactProps(node, predicate, maxDepth = 12) {
+        const target = node?.wrappedJSObject || node;
+        if (!target) return null;
+
+        let fiber = null;
+        try {
+            const fiberKey = Object.keys(target).find(key => key.startsWith('__reactFiber$'));
+            fiber = fiberKey ? target[fiberKey] : null;
+        } catch (_error) {
+            return null;
+        }
+
+        for (let depth = 0; fiber && depth < maxDepth; depth += 1, fiber = fiber.return) {
+            try {
+                const props = fiber.memoizedProps;
+                if (props && typeof props === 'object' && predicate(props)) return props;
+            } catch (_error) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     function getMessageContentNode(textNode) {
         let contentNode = textNode.querySelector('[data-qts-message-content="1"]');
         if (contentNode) return contentNode;
+
+        if (isOverlayTextNode(textNode)) {
+            contentNode = document.createElement('span');
+            contentNode.dataset.qtsMessageContent = '1';
+            const trailingNode = textNode.querySelector(':scope > [data-qts-toggle="1"], :scope > [data-qts-status="1"]');
+            textNode.insertBefore(contentNode, trailingNode);
+            return contentNode;
+        }
 
         const directTextNodes = [...textNode.childNodes]
             .filter(node => node.nodeType === Node.TEXT_NODE && normalizeWhitespace(node.textContent || '').length > 0);
@@ -1697,6 +1919,7 @@
             ['SPAN', 'DIV', 'P'].includes(child.tagName)
             && child.dataset.qtsToggle !== '1'
             && child.dataset.qtsStatus !== '1'
+            && child.dataset.qtsFlag !== '1'
             && child.dataset.qtsBacklogProgress !== '1'
             && !child.classList.contains('message-indicators')
         );
@@ -1843,7 +2066,7 @@
 
     function getComposerStatusNode(inputNode) {
         const container = inputNode?.closest(
-            '[data-testid="user-list-tab-chat-input-container"], .inputDiv, .chat-controls-content, .chat-input, [class*="ChatInput__wrapper"]'
+            '[data-testid="user-list-tab-chat-input-container"], [data-testid="paid-messaging-menu-and-inputs"], .inputDiv, .chat-controls-content, .chat-input, [class*="ChatInput__wrapper"]'
         );
         if (!container) return null;
 
@@ -1858,7 +2081,7 @@
 
     function clearComposerStatus(inputNode) {
         const container = inputNode?.closest(
-            '[data-testid="user-list-tab-chat-input-container"], .inputDiv, .chat-controls-content, .chat-input, [class*="ChatInput__wrapper"]'
+            '[data-testid="user-list-tab-chat-input-container"], [data-testid="paid-messaging-menu-and-inputs"], .inputDiv, .chat-controls-content, .chat-input, [class*="ChatInput__wrapper"]'
         );
         const statusNode = container?.querySelector('[data-qts-composer-status="1"]');
         if (statusNode) {
@@ -2006,8 +2229,13 @@
         const originalText = textNode.dataset.qtsOriginalText || contentNode.textContent || '';
         const translatedText = textNode.dataset.qtsTranslatedText || originalText;
 
-        contentNode.textContent = showTranslated ? translatedText : originalText;
+        if (isOverlayTextNode(textNode)) {
+            contentNode.textContent = translatedText;
+        } else {
+            contentNode.textContent = showTranslated ? translatedText : originalText;
+        }
         textNode.dataset.qtsShowing = showTranslated ? 'translated' : 'original';
+        notifyMessageContentResized(textNode);
 
         if (!toggleButton) return;
 
@@ -2045,6 +2273,7 @@
         }
 
         contentNode.classList.add(TRANSLATION_BLOCK_CLASS);
+        renderLanguageFlag(textNode, contentNode);
         ensureToggleButton(textNode);
         clearMessageStatus(textNode);
         setMessageTranslationState(textNode, shouldShowTranslatedForRenderedMessage(textNode, message.stateRef || null));
@@ -2055,8 +2284,10 @@
     function markSkipped(message) {
         if (!message.textNode) return;
         const textNode = message.textNode;
-        const contentNode = getMessageContentNode(textNode);
-        contentNode.classList.add(TRANSLATION_BLOCK_CLASS);
+        if (!isOverlayTextNode(textNode)) {
+            const contentNode = getMessageContentNode(textNode);
+            contentNode.classList.add(TRANSLATION_BLOCK_CLASS);
+        }
         delete textNode.dataset.qtsPending;
         delete textNode.dataset.qtsError;
         clearMessageStatus(textNode);
@@ -2072,10 +2303,28 @@
         statusNode.dataset.qtsStatusType = 'error';
         statusNode.textContent = 'translation error';
         statusNode.title = error?.message || 'Translation failed after 3 attempts';
+        notifyMessageContentResized(textNode);
     }
 
     function resetRenderedTranslation(textNode) {
         if (!textNode) return;
+
+        textNode.querySelector(':scope > [data-qts-flag="1"]')?.remove();
+
+        if (isOverlayTextNode(textNode)) {
+            textNode.querySelector(':scope > [data-qts-message-content="1"]')?.remove();
+            textNode.querySelector('.translation-toggle-container[data-qts-toggle="1"]')?.remove();
+            clearMessageStatus(textNode);
+            delete textNode.dataset.qtsOriginalText;
+            delete textNode.dataset.qtsTranslatedText;
+            delete textNode.dataset.qtsDetectedLanguage;
+            delete textNode.dataset.qtsDirection;
+            delete textNode.dataset.qtsShowing;
+            delete textNode.dataset.qtsPending;
+            delete textNode.dataset.qtsError;
+            notifyMessageContentResized(textNode);
+            return;
+        }
 
         const originalText = textNode.dataset.qtsOriginalText || normalizeWhitespace(textNode.textContent || '');
         const contentNode = getMessageContentNode(textNode);
@@ -2663,6 +2912,26 @@
             return null;
         }
 
+        getMessageTextNode(element) {
+            return element?.querySelector('[data-testid="chat-message-text"]') || null;
+        }
+
+        /**
+         * Permite al adaptador decidir dónde va el botón de traducción saliente.
+         * Devuelve { anchor, position } (position para insertAdjacentElement) o null
+         * para usar la colocación genérica.
+         */
+        getOutgoingTogglePlacement(_conversationRoot) {
+            return null;
+        }
+
+        /**
+         * true si el composer no tiene botón de enviar y se envía con Enter.
+         */
+        submitsComposerWithEnter(_inputNode) {
+            return false;
+        }
+
         supportsIncomingTranslation() {
             return true;
         }
@@ -2680,6 +2949,10 @@
     class ChaturbatePmAdapter extends BaseSiteAdapter {
         constructor() {
             super('chaturbate-pm');
+            this.rowRemeasureTimers = new WeakMap();
+            document.addEventListener(MESSAGE_CONTENT_RESIZED_EVENT, event => {
+                this.scheduleDmRowRemeasure(event.target);
+            });
         }
 
         isSupported() {
@@ -2689,6 +2962,181 @@
         getSelfUsername() {
             const match = location.pathname.match(/^\/b\/([^/]+)\//i);
             return match ? match[1].toLowerCase() : null;
+        }
+
+        /*
+         * Nueva UI de mensajes (despliegue gradual): [data-testid="dm-conversation"] con lista
+         * virtualizada (react-window). Si no aparece, se usa la UI antigua (.TheatermodeChatDivPm).
+         */
+        isDmConversation(container) {
+            return container instanceof HTMLElement && container.matches('[data-testid="dm-conversation"]');
+        }
+
+        isDmMessageElement(element) {
+            return element instanceof HTMLElement && element.matches('[data-testid="received-message"], [data-testid="sent-message"]');
+        }
+
+        findOpenDmConversation() {
+            const candidates = [...document.querySelectorAll('[data-testid="dm-conversation"]')];
+            if (!candidates.length) return null;
+
+            const activeElement = document.activeElement;
+            const withThread = candidates.filter(candidate => this.getDmThread(candidate));
+            return withThread.find(candidate => activeElement && candidate.contains(activeElement) && this.isVisiblePmContainer(candidate))
+                || withThread.find(candidate => this.isVisiblePmContainer(candidate))
+                || candidates.find(candidate => this.isVisiblePmContainer(candidate))
+                || withThread[0]
+                || candidates[0];
+        }
+
+        // El contenedor dm-conversation también aloja la bandeja de entrada; la conversación abierta
+        // es el nodo [data-testid="message-list-id-<usuario>"].
+        getDmThread(container) {
+            return container?.querySelector('[data-testid^="message-list-id-"]') || null;
+        }
+
+        getDmCounterpartUsername(container) {
+            const thread = this.getDmThread(container);
+            const listId = thread?.getAttribute('data-testid') || '';
+            const fromListId = listId.slice('message-list-id-'.length);
+            if (fromListId) return fromListId.toLowerCase();
+
+            const headerName = normalizeWhitespace(thread?.querySelector('[data-testid="username"]')?.textContent || '');
+            return headerName ? headerName.toLowerCase() : null;
+        }
+
+        getDmHeaderSlot(container) {
+            const thread = this.getDmThread(container);
+            const closeButton = thread?.querySelector('[data-testid="close-button"]');
+            const menu = thread?.querySelector('[data-testid="message-header-menu"]');
+            const reference = menu || thread?.querySelector('[data-testid="username"]');
+            if (!closeButton || !reference) return null;
+
+            let block = reference;
+            while (block.parentElement && !block.parentElement.contains(closeButton)) {
+                block = block.parentElement;
+            }
+            const headerRow = block.parentElement;
+            if (!headerRow || headerRow === thread || !thread.contains(headerRow)) return null;
+
+            let slot = headerRow.querySelector(':scope > [data-qts-cb-header-slot="1"]');
+            if (!slot) {
+                slot = document.createElement('div');
+                slot.dataset.qtsCbHeaderSlot = '1';
+            }
+            if (menu) {
+                if (slot.nextElementSibling !== block || slot.parentElement !== headerRow) {
+                    headerRow.insertBefore(slot, block);
+                }
+            } else if (slot.parentElement !== headerRow) {
+                headerRow.appendChild(slot);
+            }
+            return slot;
+        }
+
+        extractDmMessageText(textNode) {
+            if (!textNode) return '';
+            const parts = [...textNode.childNodes]
+                .filter(node => !(node instanceof Element) || !node.matches(
+                    '[data-qts-message-content="1"], [data-qts-toggle="1"], [data-qts-status="1"], [data-qts-flag="1"], [data-testid="emoticonImg"]'
+                ))
+                .map(node => node.textContent || '');
+            return normalizeWhitespace(parts.join(''));
+        }
+
+        getDmMessageData(element) {
+            const props = findReactProps(element, candidate =>
+                candidate.message && typeof candidate.message === 'object' && 'i' in candidate.message, 4);
+            return props?.message || null;
+        }
+
+        /**
+         * react-window reutiliza las filas por índice: al cargar mensajes antiguos arriba,
+         * el mismo nodo puede pasar a mostrar otro mensaje. Si cambia, se descarta lo pintado.
+         */
+        syncDmMessageElement(element) {
+            const textNode = this.resolveMessageTextNode(element);
+            if (!textNode) return null;
+
+            const nativeText = this.extractDmMessageText(textNode);
+            const messageData = this.getDmMessageData(element);
+            const signature = `${messageData?.i || ''}|${nativeText}`;
+            if (element.dataset.qtsSignature && element.dataset.qtsSignature !== signature) {
+                resetRenderedTranslation(textNode);
+                delete element.dataset.qtsProcessed;
+                delete element.dataset.qtsSkipped;
+                delete element.dataset.qtsQueued;
+            }
+            element.dataset.qtsSignature = signature;
+            return { textNode, nativeText, messageData };
+        }
+
+        scheduleDmRowRemeasure(node) {
+            const row = node instanceof Element ? node.closest('.message-row') : null;
+            if (!row || !row.closest('[data-testid="dm-conversation"]')) return;
+
+            requestAnimationFrame(() => this.remeasureDmRow(row));
+            // onHeightChange ignora alturas casi iguales a la última aplicada y aplica con debounce,
+            // así que se vuelve a comprobar después para no quedarnos con un tamaño intermedio.
+            clearTimeout(this.rowRemeasureTimers.get(row));
+            this.rowRemeasureTimers.set(row, setTimeout(() => this.remeasureDmRow(row), 1000));
+        }
+
+        remeasureDmRow(row) {
+            if (!row.isConnected) return;
+
+            const props = findReactProps(row, candidate =>
+                typeof candidate.index === 'number' && typeof candidate.data?.onHeightChange === 'function', 4);
+            if (!props) return;
+
+            const messageIndex = props.index - 1;
+            const messageId = props.data.messages?.[messageIndex]?.i;
+            if (!messageId) return;
+
+            const previousHeight = row.style.height;
+            row.style.height = 'auto';
+            const measuredHeight = row.offsetHeight;
+            row.style.height = previousHeight;
+
+            if (!measuredHeight || Math.abs(measuredHeight - parseFloat(previousHeight || '0')) <= 2) return;
+            try {
+                props.data.onHeightChange(messageIndex, measuredHeight, messageId);
+            } catch (error) {
+                log('Could not remeasure Chaturbate message row', error);
+            }
+        }
+
+        getMessageTextNode(element) {
+            if (this.isDmMessageElement(element)) {
+                return this.resolveMessageTextNode(element);
+            }
+            return super.getMessageTextNode(element);
+        }
+
+        getOutgoingTogglePlacement(conversationRoot) {
+            if (!this.isDmConversation(conversationRoot)) return null;
+
+            const bar = conversationRoot.querySelector('[data-testid="paid-messaging-menu-and-inputs"]');
+            const input = conversationRoot.querySelector('textarea[data-testid="dm-input"]');
+            if (!bar || !input) return null;
+
+            // Bloque de `node` dentro de la fila que comparte con el textarea.
+            const blockBeside = node => {
+                let current = node;
+                while (current?.parentElement && !current.parentElement.contains(input)) current = current.parentElement;
+                return current?.parentElement && bar.contains(current.parentElement) ? current : null;
+            };
+            const galleryBlock = blockBeside(bar.querySelector('[data-testid="gallery-btn"]'));
+            if (galleryBlock) return { anchor: galleryBlock, position: 'afterend' };
+
+            const tokensBlock = blockBeside(bar.querySelector('[data-testid="tokens-btn"]'));
+            if (tokensBlock) return { anchor: tokensBlock, position: 'beforebegin' };
+
+            return null;
+        }
+
+        submitsComposerWithEnter(inputNode) {
+            return inputNode instanceof HTMLElement && inputNode.matches('textarea[data-testid="dm-input"]');
         }
 
         isVisiblePmContainer(container) {
@@ -2704,6 +3152,9 @@
         }
 
         findOpenPmContainer() {
+            const dmConversation = this.findOpenDmConversation();
+            if (dmConversation) return dmConversation;
+
             const candidates = [
                 ...document.querySelectorAll('#ChatTabContents.TheatermodeChatDivPm, .ChatTabContents.TheatermodeChatDivPm, .TheatermodeChatDivPm')
             ].filter(candidate => this.isPrivateMessageContainer(candidate));
@@ -2733,6 +3184,9 @@
 
         resolveMessageList(container) {
             if (!container) return null;
+            if (this.isDmConversation(container)) {
+                return this.getDmThread(container)?.querySelector('[data-testid="virtual-list"]') || null;
+            }
 
             const preferredSelectors = [
                 '.msg-list-fvm.message-list',
@@ -2781,6 +3235,11 @@
 
         resolveMessageTextNode(element) {
             if (!element) return null;
+            if (this.isDmMessageElement(element)) {
+                const contentNode = element.querySelector('[data-testid="message-contents"]');
+                if (contentNode) contentNode.dataset.qtsContentMode = 'overlay';
+                return contentNode;
+            }
 
             const preferred = element.querySelector(
                 '[data-testid="chat-message-text"], [data-testid="message-text"], [class*="messageText"], [class*="message-text"]'
@@ -2856,6 +3315,9 @@
 
         getComposerInput() {
             const container = this.findOpenPmContainer();
+            if (this.isDmConversation(container)) {
+                return container.querySelector('textarea[data-testid="dm-input"]');
+            }
             return container
                 ? container.querySelector('[data-testid="chat-input"].theatermodeInputFieldPm, .theatermodeInputFieldPm[data-testid="chat-input"]')
                 : null;
@@ -2863,6 +3325,10 @@
 
         getSendButton() {
             const container = this.findOpenPmContainer();
+            if (this.isDmConversation(container)) {
+                // La nueva UI envía con Enter; no hay botón de enviar en escritorio.
+                return null;
+            }
             return container
                 ? container.querySelector('[data-testid="send-button"].pm, .SendButton.SplitMode.pm[data-testid="send-button"]')
                 : null;
@@ -2870,6 +3336,9 @@
 
         getMediaDock() {
             const container = this.findOpenPmContainer();
+            if (this.isDmConversation(container)) {
+                return container.querySelector('[data-testid="paid-messaging-menu-and-inputs"]');
+            }
             return container
                 ? container.querySelector('.pmMediaDockContainer.SelectedMediaDock, .pmMediaDockContainer')
                 : null;
@@ -2877,13 +3346,21 @@
 
         getControlBar() {
             const container = this.findOpenPmContainer();
+            if (this.isDmConversation(container)) {
+                return this.getDmHeaderSlot(container);
+            }
             return container
                 ? container.querySelector('#pm-control-bar, .PMControlBar.pm-control-bar')
                 : null;
         }
 
         getOutgoingLanguageHost() {
-            return document.querySelector('#roomTabs');
+            const roomTabs = document.querySelector('#roomTabs');
+            if (roomTabs) return roomTabs;
+
+            // Fuera de la página de emisión (p. ej. mensajes desde la cabecera) no hay #roomTabs.
+            const container = this.findOpenPmContainer();
+            return this.isDmConversation(container) ? this.getDmHeaderSlot(container) : null;
         }
 
         getMessageElements() {
@@ -2896,6 +3373,11 @@
                     }),
                 }, 'warn');
                 return [];
+            }
+
+            if (messageList.matches('[data-testid="virtual-list"]')) {
+                return [...messageList.querySelectorAll('[data-testid="received-message"], [data-testid="sent-message"]')]
+                    .filter(element => Boolean(this.syncDmMessageElement(element)?.nativeText));
             }
 
             const seen = new Set();
@@ -2920,6 +3402,12 @@
         }
 
         getConversationIdentity() {
+            const dmConversation = this.findOpenPmContainer();
+            if (this.isDmConversation(dmConversation)) {
+                const counterpart = this.getDmCounterpartUsername(dmConversation);
+                return counterpart ? `chaturbate-dm::${counterpart}` : `${location.pathname}::dm-unknown`;
+            }
+
             const scope = this.getConversationRoot() || document;
             const header = [...scope.querySelectorAll('[data-testid="chat-message"]')]
                 .map(el => normalizeWhitespace(el.textContent))
@@ -2930,7 +3418,36 @@
             return header || `${location.pathname}::pm-unknown`;
         }
 
+        parseDmMessageElement(element) {
+            const synced = this.syncDmMessageElement(element);
+            if (!synced) return null;
+
+            const { textNode, nativeText, messageData } = synced;
+            const text = normalizeWhitespace(textNode.dataset.qtsOriginalText || nativeText);
+            const direction = element.matches('[data-testid="sent-message"]') ? 'outgoing' : 'incoming';
+            const authorName = direction === 'outgoing'
+                ? (this.getSelfUsername() || 'self')
+                : (this.getDmCounterpartUsername(element.closest('[data-testid="dm-conversation"]')) || 'counterpart');
+            const timestamp = messageData?.created_at != null ? String(messageData.created_at) : '';
+            if (!text) return null;
+
+            return {
+                id: buildMessageId({ authorName, timestamp: timestamp || messageData?.i || '', text }),
+                authorKey: authorName.toLowerCase(),
+                authorName,
+                text,
+                timestamp,
+                direction,
+                root: element,
+                textNode,
+            };
+        }
+
         parseMessageElement(element) {
+            if (this.isDmMessageElement(element)) {
+                return this.parseDmMessageElement(element);
+            }
+
             const usernameNode = element.querySelector('[data-testid="chat-message-username"] [data-testid="username"], [data-testid="chat-message-username"], [data-testid="username"]');
             const textNode = this.resolveMessageTextNode(element);
             const sourceText = textNode?.dataset.qtsOriginalText || textNode?.querySelector('[data-qts-message-content="1"]')?.textContent || textNode?.textContent || '';
@@ -3253,6 +3770,7 @@
             this.currentOutgoingLanguageHost = null;
             this.isSendingTranslatedMessage = false;
             this.allowNativeSendClick = false;
+            this.allowNativeEnterKey = false;
             this.outgoingMessageStore = store || new OutgoingMessageStore();
             this.outgoingTranslationMemory = [];
             this.persistedOutgoingTranslationCache = new Map();
@@ -3435,7 +3953,7 @@
 
             const className = String(messageList.className || '');
             const text = normalizeWhitespace(messageList.textContent || '');
-            const hasMessageNodes = Boolean(messageList.querySelector('[data-testid="chat-message"], [data-ts][data-nick], [data-nick][data-testid], [data-nick]'));
+            const hasMessageNodes = Boolean(messageList.querySelector('[data-testid="chat-message"], [data-ts][data-nick], [data-nick][data-testid], [data-nick], [data-testid="received-message"], [data-testid="sent-message"]'));
             const isLoadingWrapper =
                 className.includes('msg-list-wrapper-split') &&
                 /Cargando más mensajes|Loading more messages/i.test(text);
@@ -3769,6 +4287,50 @@
             }
         }
 
+        createOutgoingToggleButton(conversationRoot) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.qtsPmOutgoingToggle = '1';
+            button.innerHTML = this.getOutgoingToggleSvg();
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0
+                    ? this.adapter.getConversationIdentity(conversationRoot)
+                    : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
+
+                if (conversationKey) {
+                    const settingsKey = buildIncomingSettingsKey(this.adapter.siteId, conversationKey);
+                    let stored = this.incomingSettingsCache.get(settingsKey);
+                    if (!stored) {
+                        stored = {
+                            settingsKey,
+                            siteId: this.adapter.siteId,
+                            conversationKey,
+                            translationEnabled: isTranslationEnabled(this.state),
+                            outgoingTranslationEnabled: isOutgoingTranslationEnabled(this.state),
+                            targetLanguage: getConfiguredTargetLanguage(this.state),
+                            outgoingTargetLanguage: getConfiguredOutgoingTargetLanguage(this.state),
+                            updatedAt: Date.now(),
+                        };
+                    }
+                    stored.outgoingTranslationEnabled = !stored.outgoingTranslationEnabled;
+                    stored.updatedAt = Date.now();
+                    this.incomingSettingsCache.set(settingsKey, stored);
+                    this.outgoingMessageStore.putIncomingSettings(stored).catch(() => {});
+
+                    // Also sync it to global state if it's the primary conversation
+                    if (conversationKey === this.currentConversationKey) {
+                        setOutgoingTranslationEnabled(this.state, stored.outgoingTranslationEnabled);
+                        this.persistIncomingSettings();
+                    }
+                }
+
+                this.updateOutgoingToggleUi();
+            });
+            return button;
+        }
+
         renderOutgoingToggle() {
             const containers = typeof this.adapter.findOpenPmContainers === 'function'
                 ? this.adapter.findOpenPmContainers()
@@ -3776,10 +4338,29 @@
             
             containers.forEach(conversationRoot => {
                 if (!conversationRoot) return;
-                
+
+                const placement = this.adapter.getOutgoingTogglePlacement(conversationRoot);
+                if (placement) {
+                    let placedButton = conversationRoot.querySelector('[data-qts-pm-outgoing-toggle="1"]');
+                    if (!placedButton) {
+                        placedButton = this.createOutgoingToggleButton(conversationRoot);
+                    } else if (placedButton.innerHTML !== this.getOutgoingToggleSvg()) {
+                        placedButton.innerHTML = this.getOutgoingToggleSvg();
+                    }
+                    this.applyOutgoingToggleTheme(placedButton);
+
+                    const isPlaced = placement.position === 'afterend'
+                        ? placedButton.previousElementSibling === placement.anchor
+                        : placedButton.nextElementSibling === placement.anchor;
+                    if (!isPlaced) {
+                        placement.anchor.insertAdjacentElement(placement.position, placedButton);
+                    }
+                    return;
+                }
+
                 const composerInput = conversationRoot.querySelector('textarea[placeholder*="Mensaje privado"], textarea[placeholder*="Private message"], .ChatInput__input, .chat-input textarea');
                 const sendButton = conversationRoot.querySelector('button[aria-label="Enviar"], button[aria-label="Send"], .ChatInput__sendBtn, [class*="ChatInput__sendBtn"], .chat-input button[type="submit"]');
-                
+
                 const composerToolbar = composerInput?.closest('.inputDiv');
                 const modelChatInput = composerInput?.closest('.model-chat-input, .ChatInput__wrapper');
                 const sendParent = sendButton?.parentElement || null;
@@ -3801,46 +4382,7 @@
                     || fallbackParent?.querySelector('[data-qts-pm-outgoing-toggle="1"]')
                     || conversationRoot?.querySelector('[data-qts-pm-outgoing-toggle="1"]');
                 if (!button) {
-                    button = document.createElement('button');
-                    button.type = 'button';
-                    button.dataset.qtsPmOutgoingToggle = '1';
-                    button.innerHTML = this.getOutgoingToggleSvg();
-                    button.addEventListener('click', event => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const conversationKey = typeof this.adapter.getConversationIdentity === 'function' && this.adapter.getConversationIdentity.length > 0 
-                            ? this.adapter.getConversationIdentity(conversationRoot)
-                            : (this.adapter.getConversationIdentity ? this.adapter.getConversationIdentity() : this.currentConversationKey);
-
-                        if (conversationKey) {
-                            const settingsKey = buildIncomingSettingsKey(this.adapter.siteId, conversationKey);
-                            let stored = this.incomingSettingsCache.get(settingsKey);
-                            if (!stored) {
-                                stored = {
-                                    settingsKey,
-                                    siteId: this.adapter.siteId,
-                                    conversationKey,
-                                    translationEnabled: isTranslationEnabled(this.state),
-                                    outgoingTranslationEnabled: isOutgoingTranslationEnabled(this.state),
-                                    targetLanguage: getConfiguredTargetLanguage(this.state),
-                                    outgoingTargetLanguage: getConfiguredOutgoingTargetLanguage(this.state),
-                                    updatedAt: Date.now(),
-                                };
-                            }
-                            stored.outgoingTranslationEnabled = !stored.outgoingTranslationEnabled;
-                            stored.updatedAt = Date.now();
-                            this.incomingSettingsCache.set(settingsKey, stored);
-                            this.outgoingMessageStore.putIncomingSettings(stored).catch(() => {});
-                            
-                            // Also sync it to global state if it's the primary conversation
-                            if (conversationKey === this.currentConversationKey) {
-                                setOutgoingTranslationEnabled(this.state, stored.outgoingTranslationEnabled);
-                                this.persistIncomingSettings();
-                            }
-                        }
-                        
-                        this.updateOutgoingToggleUi();
-                    });
+                    button = this.createOutgoingToggleButton(conversationRoot);
                 } else if (button.innerHTML !== this.getOutgoingToggleSvg()) {
                     button.innerHTML = this.getOutgoingToggleSvg();
                 }
@@ -4201,7 +4743,7 @@
                 this.adapter.getMessageElements().forEach(element => {
                     if (element.dataset.qtsProcessed !== '1') {
                         delete element.dataset.qtsQueued;
-                        resetRenderedTranslation(element.querySelector('[data-testid="chat-message-text"]'));
+                        resetRenderedTranslation(this.adapter.getMessageTextNode(element));
                     }
                 });
 
@@ -4233,7 +4775,7 @@
                 delete element.dataset.qtsProcessed;
                 delete element.dataset.qtsSkipped;
                 delete element.dataset.qtsQueued;
-                resetRenderedTranslation(element.querySelector('[data-testid="chat-message-text"]'));
+                resetRenderedTranslation(this.adapter.getMessageTextNode(element));
             });
 
             this.initialBacklogPending = true;
@@ -4243,7 +4785,7 @@
         applyTranslationVisibilityToCurrentChat() {
             const messageList = this.currentMessageList || this.adapter.getMessageList();
             if (!messageList) return;
-            messageList.querySelectorAll('[data-testid="chat-message-text"][data-qts-translated-text]').forEach(textNode => {
+            messageList.querySelectorAll('[data-testid="chat-message-text"][data-qts-translated-text], [data-qts-content-mode="overlay"][data-qts-translated-text]').forEach(textNode => {
                 setMessageTranslationState(textNode, shouldShowTranslatedForRenderedMessage(textNode, this.state));
             });
         }
@@ -4453,9 +4995,13 @@
 
         async handleComposerKeyDown(event) {
             if (!CONFIG.translateOutgoingComposer) return;
+            if (this.allowNativeEnterKey) return;
             if (event.key !== 'Enter') return;
             if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
             if (event.isComposing) return;
+            // Sin botón de enviar y con la traducción saliente apagada, dejamos el Enter nativo intacto
+            // (así también siguen funcionando los autocompletados del propio chat).
+            if (!isOutgoingTranslationEnabled(this.state) && !this.adapter.getSendButton()) return;
 
             event.preventDefault();
             event.stopPropagation();
@@ -4485,7 +5031,8 @@
 
             const inputNode = this.adapter.getComposerInput();
             const sendButton = this.adapter.getSendButton();
-            if (!inputNode || !sendButton) {
+            const sendsWithEnter = !sendButton && this.adapter.submitsComposerWithEnter(inputNode);
+            if (!inputNode || (!sendButton && !sendsWithEnter)) {
                 telemetry.capture('controller.translateComposerAndSend.missingComposerPieces', {
                     siteId: this.adapter.siteId,
                     hasInputNode: Boolean(inputNode),
@@ -4502,8 +5049,7 @@
                     siteId: this.adapter.siteId,
                     reason: 'outgoing-translation-disabled',
                 }, 'info');
-                this.allowNativeSendClick = true;
-                sendButton.click();
+                this.triggerNativeSend(inputNode, sendButton);
                 return;
             }
 
@@ -4542,8 +5088,7 @@
                 setComposerText(inputNode, translatedText);
                 await waitForComposerText(inputNode, translatedText, 600);
                 await sleep(80);
-                this.allowNativeSendClick = true;
-                sendButton.click();
+                this.triggerNativeSend(inputNode, sendButton);
                 await waitForComposerSendSettlement(inputNode);
                 clearComposerStatus(inputNode);
                 telemetry.capture('controller.translateComposerAndSend.success', {
@@ -4575,6 +5120,28 @@
             }
         }
 
+        triggerNativeSend(inputNode, sendButton) {
+            if (sendButton) {
+                this.allowNativeSendClick = true;
+                sendButton.click();
+                return;
+            }
+
+            this.allowNativeEnterKey = true;
+            try {
+                inputNode.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    which: 13,
+                    bubbles: true,
+                    cancelable: true,
+                }));
+            } finally {
+                this.allowNativeEnterKey = false;
+            }
+        }
+
         observeMessageList(messageList) {
             if (this.messageObserver) {
                 this.messageObserver.disconnect();
@@ -4592,6 +5159,7 @@
             this.messageObserver.observe(messageList, {
                 childList: true,
                 subtree: true,
+                characterData: true,
             });
         }
 
